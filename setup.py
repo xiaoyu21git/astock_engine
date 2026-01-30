@@ -1,42 +1,64 @@
-from setuptools import setup, find_packages, Extension
-from setuptools.command.build_ext import build_ext
+from setuptools import setup, Extension, find_packages
 import sys
-import subprocess
+import sysconfig
+from pathlib import Path
 
-# 确保在Python 3.12下运行
-if sys.version_info[:2] < (3, 12) or sys.version_info[:2] >= (3, 13):
-    raise RuntimeError("本项目要求 Python 版本 >=3.12, <3.13")
+# -------- Python 版本控制 --------
+if not (3, 12) <= sys.version_info < (3, 13):
+    raise RuntimeError("Requires Python >=3.12,<3.13")
 
-# 定义一个辅助函数来获取Python 3.12的包含目录和库目录
-def get_py312_paths():
-    import sysconfig
-    include_dir = sysconfig.get_path('include')
-    # Windows 上库目录的特定获取方式
-    if sys.platform == "win32":
-        lib_dir = sysconfig.get_config_var('installed_base') + "\\libs"
-    else:
-        lib_dir = sysconfig.get_config_var('LIBDIR')
-    return include_dir, lib_dir
+ROOT = Path(__file__).parent.resolve()
 
-include_dir, lib_dir = get_py312_paths()
+# -------- Python include / lib --------
+include_dir = sysconfig.get_path("include")
+
+lib_dirs = []
+libs = []
+if sys.platform == "win32":
+    lib_dirs.append(sysconfig.get_config_var("installed_base") + "\\libs")
+    libs.append("python312")
+
+# -------- 公共 C++ 编译参数 --------
+COMMON_COMPILE_ARGS = (
+    ["/std:c++17"] if sys.platform == "win32" else ["-std=c++17"]
+)
+
+# -------- C++ 扩展模块定义（集中管理） --------
+def cpp_extension(name, sources):
+    return Extension(
+        name=name,
+        sources=[str(ROOT / s) for s in sources],
+        include_dirs=[
+            include_dir,
+            str(ROOT / "cpp"),
+        ],
+        library_dirs=lib_dirs,
+        libraries=libs,
+        language="c++",
+        extra_compile_args=COMMON_COMPILE_ARGS,
+    )
 
 ext_modules = [
-    Extension(
-        'quant_engine.fast_factors',
-        sources=['bindings/fast_factors.cpp'],
-        include_dirs=[include_dir, 'bindings/'],  # 显式指定Python 3.12的头文件路径
-        library_dirs=[lib_dir],  # 显式指定Python 3.12的库路径
-        # Windows 上需要链接 python312.lib
-        libraries=['python312'] if sys.platform == "win32" else [],
-        language='c++',
-        extra_compile_args=['/std:c++17'] if sys.platform == "win32" else ['-std=c++17'],
+    cpp_extension(
+        "quant_engine._native.fast_factors",
+        ["bindings/fast_factors.cpp"],
     ),
+    cpp_extension(
+        "quant_engine._native.fast_factors",
+        ["bindings/modules/EventCore/eventbus_binding.cpp"],
+    ),
+    # 以后加模块，只加这里 👇
+    # cpp_extension(
+    #     "quant_engine._native.eventbus",
+    #     ["bindings/eventbus.cpp"],
+    # ),
 ]
 
 setup(
     name="quant_engine",
     version="1.0.0",
-    python_requires=">=3.12, <3.13",  # 明确版本范围
+    python_requires=">=3.12,<3.13",
+    package_dir={"": "python"},
+    packages=find_packages("python"),
     ext_modules=ext_modules,
-    # ... 其他设置
 )

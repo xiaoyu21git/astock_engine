@@ -17,10 +17,13 @@ FetchContent_MakeAvailable(pybind11)
 pybind11_add_module(fast_factors 
     fast_factors.cpp
     modules/market_data_module.cpp
+    modules/EventCore/eventbus_binding.cpp
+    # modules/EventCore/eventbus_binding.cpp
+    # modules/EventCore/eventbus_binding.cpp
 )
 
 # 链接Python库
-target_link_libraries(fast_factors PRIVATE ${Python_LIBRARIES})
+target_link_libraries(fast_factors PRIVATE ${Python_LIBRARIES} astock_engine)
 
 # 设置输出位置
 set_target_properties(fast_factors PROPERTIES

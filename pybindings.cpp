@@ -1,4 +1,4 @@
-// astock_engine/pybindings.cpp - 超简化版
+// ASTOCK Quant Engine Python Bindings
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <iostream>
