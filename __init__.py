@@ -295,6 +295,70 @@ __all__ = [
     "EventType", 
     "Event",
     "create_event",
+    # 兼容层: 提供 EventFormat / EventValue 给测试套件和现有代码使用
+    "EventFormat",
+    "EventValue",
+    "ExecutionMode",
 ]
 
 print(f"ASTOCK Quant Engine v{__version__} initialized")
+
+
+class EventFormat:
+    """兼容性包装: 轻量级事件对象，提供 set_type/set/get/get_type/to_json 等方法"""
+    def __init__(self):
+        self._type = None
+        self._attributes = {}
+
+    def set_type(self, t: str):
+        self._type = t
+
+    def get_type(self) -> str:
+        return self._type
+
+    def set(self, key: str, value):
+        self._attributes[key] = value
+
+    def get(self, key: str, default=None):
+        return self._attributes.get(key, default)
+
+    @property
+    def attributes(self):
+        return dict(self._attributes)
+
+    def to_json(self):
+        try:
+            import json
+            payload = dict(self._attributes)
+            payload['type'] = self._type
+            return json.dumps(payload, ensure_ascii=False)
+        except Exception:
+            return '{}'
+
+    def set_correlation_id(self, cid: str):
+        self._attributes['correlation_id'] = cid
+
+    def get_correlation_id(self):
+        return self._attributes.get('correlation_id')
+
+    def set_priority(self, p: int):
+        self._attributes['priority'] = int(p)
+
+    def get_priority(self):
+        return self._attributes.get('priority')
+
+
+class EventValue:
+    """简单容器类型的别名/占位符"""
+    def __init__(self, value=None):
+        self.value = value
+    # placeholder: no extra methods required
+
+
+# 互操作兼容: ExecutionMode 枚举 (用于测试)
+from enum import Enum as _Enum
+
+
+class ExecutionMode(_Enum):
+    SYNC = 'sync'
+    ASYNC = 'async'

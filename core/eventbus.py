@@ -15,9 +15,14 @@ import json
 import time
 
 try:
-    from . import quant_core_native as native
-except ImportError:
-    import quant_core_native as native
+    # Prefer the compiled package extension if available
+    from . import _native as native
+except Exception:
+    try:
+        # fallback to shim that re-exports native symbols
+        from . import quant_core_native as native
+    except Exception:
+        import quant_core_native as native
 
 
 class EventType(Enum):
