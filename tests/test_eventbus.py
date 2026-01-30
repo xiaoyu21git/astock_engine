@@ -24,7 +24,7 @@ def test_import():
     from astock_engine.core import EventBus as CoreEventBus
     print("✓ Imported from core module")
     
-    return True
+    # use assertions for pytest; do not return a value
 
 def test_eventbus_creation():
     """测试EventBus创建"""
@@ -36,7 +36,7 @@ def test_eventbus_creation():
     print(f"✓ EventBus created: {bus}")
     print(f"✓ EventBus type: {type(bus)}")
     
-    return True
+    # use assertions for pytest; do not return a value
 
 def test_event_types():
     """测试事件类型"""
@@ -56,7 +56,7 @@ def test_event_types():
     assert event.data["symbol"] == "AAPL"
     print(f"✓ Event created: {event}")
     
-    return True
+    # use assertions for pytest; do not return a value
 
 def test_create_event_function():
     """测试便捷函数"""
@@ -75,7 +75,7 @@ def test_create_event_function():
     assert event.data["order_id"] == "12345"
     print(f"✓ create_event works: {event}")
     
-    return True
+    # use assertions for pytest; do not return a value
 
 def test_eventbus_subscribe():
     """测试事件订阅"""
@@ -111,7 +111,7 @@ def test_eventbus_subscribe():
     bus.unsubscribe(sub_id)
     print("✓ Unsubscribed")
     
-    return True
+    # use assertions for pytest; do not return a value
 
 def test_native_module_integration():
     """测试与native模块的集成"""
@@ -129,14 +129,16 @@ def test_native_module_integration():
         info = _native.get_system_info()
         print(f"✓ System info: {info}")
         
-        return True
-        
+        # as script runner expects a truthy result, we don't return here
+        pass
     except ImportError:
         print("⚠ Native module not found (this may be expected)")
-        return True  # 这不是测试失败
+        # not a failure
+        pass
     except Exception as e:
         print(f"⚠ Native module error: {e}")
-        return True  # 继续测试
+        # continue without signaling failure
+        pass
 
 # 运行所有测试
 if __name__ == "__main__":
@@ -159,7 +161,9 @@ if __name__ == "__main__":
         print(f"\n{'='*40}")
         print(f"Running {test_func.__name__}...")
         try:
-            success = test_func()
+            result = test_func()
+            # pytest-style tests return None on success; treat None as True for script runner
+            success = True if result is None else bool(result)
             if success:
                 print(f"✅ {test_func.__name__}: PASSED")
                 results.append(True)
