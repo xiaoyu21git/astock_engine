@@ -5,7 +5,7 @@ Core Python API for ASTOCK Quant Engine
 
 # 先尝试从eventbus导入
 try:
-    from .eventbus import EventBus, EventType, Event
+    from .eventbus import EventBus, EventType, Event, subscribe, publish, unsubscribe, get_global_bus
     # 创建create_event函数
     def create_event(event_type: EventType, data: dict) -> Event:
         """创建事件对象的便捷函数"""

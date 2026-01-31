@@ -1,0 +1,35 @@
+{
+  "name": "双均线交叉策略",
+  "version": "1.0.0",
+  "author": "ASTOCK Team",
+  "description": "经典的双均线交叉策略，短期均线上穿长期均线买入，下穿卖出",
+  "category": "trend_following",
+  "tags": ["技术指标", "趋势跟踪", "均线", "经典策略"],
+  "parameters": {
+    "short_window": {
+      "type": "int",
+      "default": 10,
+      "min": 3,
+      "max": 50,
+      "description": "短期均线窗口"
+    },
+    "long_window": {
+      "type": "int",
+      "default": 30,
+      "min": 10,
+      "max": 200,
+      "description": "长期均线窗口"
+    },
+    "position_size": {
+      "type": "float",
+      "default": 0.2,
+      "min": 0.05,
+      "max": 1.0,
+      "description": "单次交易仓位比例"
+    }
+  },
+  "dependencies": ["numpy", "pandas"],
+  "enabled": true,
+  "created_at": "2026-01-31T10:00:00",
+  "updated_at": "2026-01-31T10:00:00"
+}

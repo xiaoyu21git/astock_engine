@@ -1,0 +1,52 @@
+{
+  "name": "MACD趋势策略",
+  "version": "1.0.0",
+  "author": "ASTOCK Team",
+  "description": "基于MACD指标的趋势跟踪策略，MACD金叉买入，死叉卖出，结合柱状图辅助判断",
+  "category": "trend_following",
+  "tags": ["技术指标", "MACD", "趋势跟踪", "动量"],
+  "parameters": {
+    "fast_period": {
+      "type": "int",
+      "default": 12,
+      "min": 5,
+      "max": 20,
+      "description": "快线EMA周期"
+    },
+    "slow_period": {
+      "type": "int",
+      "default": 26,
+      "min": 15,
+      "max": 40,
+      "description": "慢线EMA周期"
+    },
+    "signal_period": {
+      "type": "int",
+      "default": 9,
+      "min": 5,
+      "max": 15,
+      "description": "信号线EMA周期"
+    },
+    "use_histogram": {
+      "type": "bool",
+      "default": true,
+      "description": "是否使用柱状图辅助判断"
+    },
+    "position_size": {
+      "type": "float",
+      "default": 0.3,
+      "min": 0.1,
+      "max": 0.5,
+      "description": "单次交易仓位比例"
+    }
+  },
+  "risk": {
+    "max_drawdown": 0.20,
+    "max_position": 0.3,
+    "stop_loss": -0.08
+  },
+  "dependencies": ["numpy", "pandas"],
+  "enabled": true,
+  "created_at": "2026-01-31T11:50:00",
+  "updated_at": "2026-01-31T11:50:00"
+}

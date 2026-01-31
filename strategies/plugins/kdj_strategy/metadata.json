@@ -1,0 +1,48 @@
+{
+    "id": "kdj_strategy",
+    "name": "KDJ随机指标策略",
+    "version": "1.0.0",
+    "description": "基于KDJ随机指标的超买超卖策略，结合金叉死叉信号",
+    "author": "AStock Quant Engine",
+    "category": "oscillator",
+    "tags": ["KDJ", "超买超卖", "金叉死叉", "震荡指标"],
+    "parameters": {
+        "n": {
+            "type": "int",
+            "default": 9,
+            "min": 5,
+            "max": 20,
+            "description": "KDJ周期"
+        },
+        "m1": {
+            "type": "int",
+            "default": 3,
+            "min": 2,
+            "max": 5,
+            "description": "K值平滑周期"
+        },
+        "m2": {
+            "type": "int",
+            "default": 3,
+            "min": 2,
+            "max": 5,
+            "description": "D值平滑周期"
+        },
+        "oversold": {
+            "type": "float",
+            "default": 20,
+            "min": 10,
+            "max": 30,
+            "description": "超卖阈值"
+        },
+        "overbought": {
+            "type": "float",
+            "default": 80,
+            "min": 70,
+            "max": 90,
+            "description": "超买阈值"
+        }
+    },
+    "dependencies": [],
+    "min_bars": 30
+}

@@ -1,0 +1,47 @@
+{
+  "name": "RSI超买超卖策略",
+  "version": "1.0.0",
+  "author": "ASTOCK Team",
+  "description": "基于RSI指标的超买超卖策略，RSI低于超卖线买入，高于超买线卖出",
+  "category": "mean_reversion",
+  "tags": ["技术指标", "RSI", "均值回归", "震荡市"],
+  "parameters": {
+    "rsi_period": {
+      "type": "int",
+      "default": 14,
+      "min": 5,
+      "max": 30,
+      "description": "RSI计算周期"
+    },
+    "oversold": {
+      "type": "int",
+      "default": 30,
+      "min": 20,
+      "max": 40,
+      "description": "超卖阈值（买入信号）"
+    },
+    "overbought": {
+      "type": "int",
+      "default": 70,
+      "min": 60,
+      "max": 80,
+      "description": "超买阈值（卖出信号）"
+    },
+    "position_size": {
+      "type": "float",
+      "default": 0.2,
+      "min": 0.1,
+      "max": 0.5,
+      "description": "单次交易仓位比例"
+    }
+  },
+  "risk": {
+    "max_drawdown": 0.15,
+    "max_position": 0.2,
+    "stop_loss": -0.08
+  },
+  "dependencies": ["numpy", "pandas"],
+  "enabled": true,
+  "created_at": "2026-01-31T11:00:00",
+  "updated_at": "2026-01-31T11:00:00"
+}

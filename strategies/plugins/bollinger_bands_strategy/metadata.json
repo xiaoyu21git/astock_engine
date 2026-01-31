@@ -1,0 +1,54 @@
+{
+  "name": "布林带均值回归策略",
+  "version": "1.0.0",
+  "author": "ASTOCK Team",
+  "description": "基于布林带的均值回归策略，价格触及下轨超卖买入，触及上轨超买卖出，适合震荡行情",
+  "category": "mean_reversion",
+  "tags": ["技术指标", "布林带", "均值回归", "震荡行情"],
+  "parameters": {
+    "period": {
+      "type": "int",
+      "default": 20,
+      "min": 10,
+      "max": 50,
+      "description": "布林带周期（移动平均线周期）"
+    },
+    "std_dev": {
+      "type": "float",
+      "default": 2.0,
+      "min": 1.0,
+      "max": 3.0,
+      "description": "标准差倍数（通道宽度）"
+    },
+    "lower_band_trigger": {
+      "type": "float",
+      "default": 0.95,
+      "min": 0.85,
+      "max": 1.0,
+      "description": "下轨触发系数（价格/下轨）"
+    },
+    "upper_band_trigger": {
+      "type": "float",
+      "default": 1.05,
+      "min": 1.0,
+      "max": 1.15,
+      "description": "上轨触发系数（价格/上轨）"
+    },
+    "position_size": {
+      "type": "float",
+      "default": 0.3,
+      "min": 0.1,
+      "max": 0.5,
+      "description": "单次交易仓位比例"
+    }
+  },
+  "risk": {
+    "max_drawdown": 0.15,
+    "max_position": 0.3,
+    "stop_loss": -0.06
+  },
+  "dependencies": ["numpy", "pandas"],
+  "enabled": true,
+  "created_at": "2026-01-31T12:10:00",
+  "updated_at": "2026-01-31T12:10:00"
+}

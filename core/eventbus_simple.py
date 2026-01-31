@@ -21,7 +21,9 @@ class EventType(Enum):
     SYSTEM = "system"
     MARKET_DATA = "market_data"
     STRATEGY_SIGNAL = "strategy_signal"
+    SIGNAL = "signal"  # 交易信号
     ORDER = "order"
+    ORDER_RESPONSE = "order_response"  # 订单响应
     RISK = "risk"
     TRADE = "trade"
     PERFORMANCE = "performance"
