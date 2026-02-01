@@ -5,9 +5,11 @@
 
 import akshare as ak
 import pandas as pd
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from datetime import datetime, date, timedelta
 import logging
+import threading
+import time
 import requests
 from bs4 import BeautifulSoup
 from .base_provider import (
@@ -29,10 +31,16 @@ class NewsDataProvider(BaseDataProvider):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("NewsDataProvider", config)
-        self.cache = {}
+        self.cache: Dict[str, Any] = {}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
+        # 订阅相关：当前实现为单回调轮询推送
+        self._callback: Optional[Callable[[str, Dict[str, Any], datetime], None]] = None
+        self._subscribe_thread: threading.Thread | None = None
+        self._stop_subscribe: bool = False
+        self._subscribe_interval: float = float(self.config.get("subscribe_interval", 5.0))
+        self._last_publish_time: Optional[datetime] = None
         
     def initialize(self) -> bool:
         """初始化新闻数据源"""
@@ -210,14 +218,110 @@ class NewsDataProvider(BaseDataProvider):
     
     def subscribe(self, symbols: List[str], callback) -> bool:
         """订阅新闻推送"""
-        # TODO: 实现新闻推送订阅
-        logger.info(f"Subscribed to news for {len(symbols)} symbols")
+        if callback is None:
+            return False
+
+        # 当前实现：忽略 symbols 过滤，统一推送所有快讯，
+        # 上层可在 callback 内自行按 symbol/title 过滤。
+        self._callback = callback
+        logger.info(
+            "Subscribed to news stream (symbol filter=%d symbols, interval=%.2fs)",
+            len(self.validate_symbols(symbols)),
+            self._subscribe_interval,
+        )
+
+        if self._subscribe_thread is None or not self._subscribe_thread.is_alive():
+            self._stop_subscribe = False
+            self._subscribe_thread = threading.Thread(
+                target=self._subscribe_loop,
+                name="NewsDataProviderSubscribeLoop",
+                daemon=True,
+            )
+            self._subscribe_thread.start()
+
         return True
     
     def unsubscribe(self, symbols: List[str]) -> bool:
         """取消新闻订阅"""
-        logger.info(f"Unsubscribed from news for {len(symbols)} symbols")
+        # 目前实现为单回调，全局取消
+        self._callback = None
+        self._stop_subscribe = True
+        logger.info("Unsubscribed from news stream")
         return True
+
+    def _subscribe_loop(self) -> None:
+        """后台轮询实时财经快讯并推送给回调。
+
+        使用 ak.stock_zh_a_alerts_cls() 获取实时快讯，
+        按发布时间去重，仅对新的消息触发回调。
+        """
+        while not self._stop_subscribe:
+            try:
+                if self._callback is None:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                resp = self.get_realtime_data(symbols=[])
+                df = resp.data
+                if df is None or df.empty:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                ts_col = None
+                for cand in ("发布时间", "time", "时间", "publish_time"):
+                    if cand in df.columns:
+                        ts_col = cand
+                        break
+
+                if ts_col is not None:
+                    df = df.copy()
+                    df["_ts"] = pd.to_datetime(df[ts_col], errors="coerce")
+                    df = df.dropna(subset=["_ts"])
+                    df = df.sort_values("_ts")
+
+                    for _, row in df.iterrows():
+                        row_ts = row["_ts"]
+                        if not isinstance(row_ts, pd.Timestamp):
+                            continue
+                        row_dt = row_ts.to_pydatetime()
+                        if self._last_publish_time is not None and row_dt <= self._last_publish_time:
+                            continue
+
+                        self._last_publish_time = row_dt
+
+                        # 尝试从列中推断相关股票代码，若没有则传空字符串
+                        raw_symbol = (
+                            row.get("代码")
+                            or row.get("symbol")
+                            or row.get("相关股票")
+                            or ""
+                        )
+                        symbol_str = str(raw_symbol) if raw_symbol is not None else ""
+
+                        try:
+                            self._callback(symbol_str, row.to_dict(), resp.timestamp)
+                        except Exception as exc:  # pragma: no cover - 防御性
+                            logger.warning("NewsDataProvider callback failed: %s", exc)
+                else:
+                    # 无明显时间列时，直接将整表推给回调，由上层自行去重
+                    now_ts = resp.timestamp
+                    for _, row in df.iterrows():
+                        raw_symbol = row.get("代码") or row.get("symbol") or ""
+                        symbol_str = str(raw_symbol) if raw_symbol is not None else ""
+                        try:
+                            self._callback(symbol_str, row.to_dict(), now_ts)
+                        except Exception as exc:  # pragma: no cover - 防御性
+                            logger.warning("NewsDataProvider callback failed: %s", exc)
+
+            except Exception as exc:  # pragma: no cover - 防御性
+                logger.warning("NewsDataProvider subscribe loop error: %s", exc)
+
+            time.sleep(self._subscribe_interval)
+
+    def close(self) -> None:
+        """关闭数据源并停止订阅线程"""
+        self._stop_subscribe = True
+        super().close()
     
     def get_hot_stocks(self, limit: int = 20) -> pd.DataFrame:
         """获取热门股票"""

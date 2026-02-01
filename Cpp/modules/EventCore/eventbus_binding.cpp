@@ -4,6 +4,7 @@
 #include <pybind11/functional.h>
 #include "EventSystem.hpp"
 #include "EventBus.hpp"
+#include "GlobalEventBusRegistry.h"
 
 namespace py = pybind11;
 
@@ -94,7 +95,7 @@ PYBIND11_MODULE(_native, m) {
                    py::arg("strength"), py::arg("price") = 0.0, 
                    py::arg("quantity") = 0);
     
-    // ==== 导出 EventBus ====
+    // ==== 导出 EventBus ==== 
     py::class_<astock::EventBus>(m, "EventBus")
         .def(py::init<>())
         .def(py::init<const astock::EventBus::Config&>())
@@ -129,6 +130,16 @@ PYBIND11_MODULE(_native, m) {
         .def("__repr__", [](const astock::EventBus&) {
             return "EventBus";
         });
+
+    // ==== 全局 Engine EventBus 访问接口 ====
+    // 允许 Python 订阅引擎内部正在使用的那只 EventBus
+    m.def("get_engine_bus", []() -> astock::EventBus* {
+        auto* bus = engine::get_engine_event_bus();
+        if (!bus) {
+            throw std::runtime_error("Engine EventBus not registered");
+        }
+        return bus;
+    }, py::return_value_policy::reference, "Get shared Engine EventBus instance");
     
     // ==== 导出 EventBus::Config ====
     py::class_<astock::EventBus::Config>(m, "EventBusConfig")

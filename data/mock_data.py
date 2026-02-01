@@ -196,7 +196,7 @@ class MockDataGenerator:
     
     def generate_stock_data(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         """
-        生成单只股票数据
+        生成单只股票日线数据
         
         Args:
             symbol: 股票代码
@@ -244,7 +244,7 @@ class MockDataGenerator:
         # 生成成交量
         volumes = self.generate_volume_series(profile, close_prices, actual_days)
         
-        # 组装DataFrame
+        # 组装日线 DataFrame
         df = pd.DataFrame({
             'date': dates,
             'open': ohlc['open'],
@@ -261,6 +261,69 @@ class MockDataGenerator:
         
         return df
 
+    def generate_intraday_stock_data(self, symbol: str, start_date: str,
+                                     end_date: str,
+                                     freq: str = '1min') -> pd.DataFrame:
+        """生成单只股票的分钟级模拟数据。
+
+        设计目标：
+        - 先基于日线轮廓生成每日收盘价和总量；
+        - 在每个交易日内按分钟切分，围绕日线收盘价做轻微扰动；
+        - 保证列结构与日线一致：open/high/low/close/volume/symbol，索引为精确到分钟的 DatetimeIndex。
+        """
+        # 先生成日线数据作为轮廓
+        daily_df = self.generate_stock_data(symbol, start_date, end_date)
+        if daily_df.empty:
+            return daily_df
+
+        # 定义 A 股交易时间段（简化：不切午休，连续 9:30-15:00）
+        import pandas as _pd
+        intraday_rows = []
+
+        for day, row in daily_df.iterrows():
+            # day 是 datetime.date 或 datetime，统一为日期
+            day_dt = _pd.to_datetime(day).normalize()
+            intraday_index = _pd.date_range(
+                day_dt + _pd.Timedelta(hours=9, minutes=30),
+                day_dt + _pd.Timedelta(hours=15, minutes=0),
+                freq=freq,
+            )
+
+            if len(intraday_index) == 0:
+                continue
+
+            close_price = float(row['close'])
+            daily_vol = float(row['volume']) if 'volume' in row else 0.0
+
+            # 按分钟切分成交量，带一点随机扰动
+            base_vol_per_bar = daily_vol / len(intraday_index) if daily_vol > 0 else 0.0
+
+            for ts in intraday_index:
+                # 围绕日收盘价做轻微扰动（约 0.2% 波动）
+                noise = np.random.normal(0, close_price * 0.002)
+                price = max(close_price * 0.9, min(close_price * 1.1, close_price + noise))
+
+                vol_noise = np.random.lognormal(mean=0, sigma=0.3) if base_vol_per_bar > 0 else 0.0
+                volume = int(base_vol_per_bar * vol_noise) if base_vol_per_bar > 0 else 0
+
+                intraday_rows.append({
+                    'datetime': ts,
+                    'open': price,
+                    'high': price,
+                    'low': price,
+                    'close': price,
+                    'volume': volume,
+                    'symbol': symbol,
+                })
+
+        if not intraday_rows:
+            return pd.DataFrame()
+
+        intraday_df = pd.DataFrame(intraday_rows)
+        intraday_df.set_index('datetime', inplace=True)
+
+        return intraday_df
+
 
 class MockDataManager:
     """离线数据管理器（兼容DataManager接口）"""
@@ -271,7 +334,8 @@ class MockDataManager:
     
     def get_stock_data(self, symbols: List[str], 
                        start_date: str,
-                       end_date: str) -> Dict[str, pd.DataFrame]:
+                       end_date: str,
+                       frequency: str = 'daily') -> Dict[str, pd.DataFrame]:
         """
         获取股票数据（模拟）
         
@@ -279,15 +343,23 @@ class MockDataManager:
             symbols: 股票代码列表
             start_date: 开始日期
             end_date: 结束日期
+            frequency: 频率，'daily'（默认）或 '1min' 等分钟级
             
         Returns:
             {symbol: DataFrame}
         """
         data = {}
         
+        freq_norm = (frequency or 'daily').lower()
+
         for symbol in symbols:
             try:
-                df = self.generator.generate_stock_data(symbol, start_date, end_date)
+                if freq_norm in ('daily', 'd'):
+                    df = self.generator.generate_stock_data(symbol, start_date, end_date)
+                else:
+                    # 目前主要支持分钟级，例如 '1min', '5min'，统一走分钟生成逻辑
+                    df = self.generator.generate_intraday_stock_data(symbol, start_date, end_date, freq=freq_norm)
+
                 data[symbol] = df
             except Exception as e:
                 logger.error(f"生成数据失败 {symbol}: {e}")

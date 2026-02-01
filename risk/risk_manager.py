@@ -7,6 +7,8 @@ from datetime import datetime
 from dataclasses import dataclass
 import logging
 
+from astock_engine.data.sector_universe import get_symbol_tags
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +24,10 @@ class RiskConfig:
     max_position_size: float = 0.30  # 单股最大仓位30%
     max_positions: int = 10  # 最大持仓数
     max_total_exposure: float = 0.95  # 最大总仓位95%
+
+    # 板块 / 题材 仓位控制（可选，None 表示不启用该约束）
+    max_industry_exposure: float | None = None  # 单一行业最大仓位比例
+    max_theme_exposure: float | None = None  # 单一题材最大仓位比例
     
     # 账户风险
     max_daily_loss: float = -0.03  # 单日最大亏损-3%
@@ -142,6 +148,46 @@ class RiskManager:
         
         if new_exposure > self.config.max_total_exposure:
             return False, f"总仓位过大({new_exposure:.2%} > {self.config.max_total_exposure:.2%})"
+
+        # 3.1 检查行业 / 题材 仓位（可选）
+        tags = get_symbol_tags(symbol)
+        industry = tags.get("industry")
+        themes = tags.get("themes") or []
+
+        # 计算当前总资产，避免在上面多次重复调用
+        total_equity = self.get_total_equity()
+
+        # 行业仓位约束
+        if industry and self.config.max_industry_exposure is not None and total_equity > 0:
+            industry_value = 0.0
+            for s, pos in self.positions.items():
+                t = get_symbol_tags(s)
+                if t.get("industry") == industry:
+                    industry_value += pos.value
+
+            new_industry_ratio = (industry_value + order_value) / total_equity
+            if new_industry_ratio > self.config.max_industry_exposure:
+                return False, (
+                    f"行业仓位过大({industry} {new_industry_ratio:.2%} > "
+                    f"{self.config.max_industry_exposure:.2%})"
+                )
+
+        # 题材仓位约束（只看 primary theme，或遍历全部题材标签）
+        if themes and self.config.max_theme_exposure is not None and total_equity > 0:
+            # 这里简单遍历所有题材，只要有一条题材超限就拒绝
+            for theme in themes:
+                theme_value = 0.0
+                for s, pos in self.positions.items():
+                    t = get_symbol_tags(s)
+                    if theme in (t.get("themes") or []):
+                        theme_value += pos.value
+
+                new_theme_ratio = (theme_value + order_value) / total_equity
+                if new_theme_ratio > self.config.max_theme_exposure:
+                    return False, (
+                        f"题材仓位过大({theme} {new_theme_ratio:.2%} > "
+                        f"{self.config.max_theme_exposure:.2%})"
+                    )
         
         # 4. 检查资金充足
         if order_value > self.cash:

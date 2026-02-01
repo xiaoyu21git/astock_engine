@@ -19,8 +19,20 @@ from datetime import datetime
 import logging
 
 from astock_engine.strategies.base_strategy import Signal
+from astock_engine.factors.sector_factors import apply_sector_factors
+from astock_engine.factors.sentiment_policy_factors import (
+    apply_simple_sentiment,
+    apply_policy_factor,
+)
+from astock_engine.factors.auction_factors import apply_auction_factors
+from astock_engine.factors.industry_sentiment import get_sector_sentiment_for_symbol
 
 logger = logging.getLogger(__name__)
+
+# 控制板块因子相关异常的日志噪音：
+# - 仅在首次失败时告警一次；
+# - 之后直接跳过板块因子计算，不再刷屏日志。
+_SECTOR_FACTOR_DIM_WARNING_SUPPRESSED = False
 
 
 class VolumePriceStrategy:
@@ -57,6 +69,13 @@ class VolumePriceStrategy:
         # OBV参数
         self.obv_signal_period = self.params.get('obv_signal_period', 10)
         
+        # 5分钟周期线参数（用于压力位/支撑位与短期趋势识别）
+        # 窗口按5分钟K线根数计，例如12≈1小时，24≈2小时
+        self.cycle_5m_window = self.params.get('cycle_5m_window', 12)
+        self.cycle_5m_trend_window = self.params.get('cycle_5m_trend_window', 20)
+        # 当前价距 5 分钟压力/支撑的相对距离阈值（例如 0.003 ≈ 0.3%）
+        self.cycle_5m_near_threshold = self.params.get('cycle_5m_near_threshold', 0.003)
+
         # 策略模式
         self.mode = self.params.get('mode', 'balanced')
         
@@ -132,8 +151,143 @@ class VolumePriceStrategy:
             df['consecutive_low_volume'] = df['low_volume_days'].groupby(
                 (df['low_volume_days'] != df['low_volume_days'].shift()).cumsum()
             ).cumsum()
+
+            # 若为日内分钟级数据，额外计算 5 分钟周期线相关指标
+            # 用于识别短周期压力位/支撑位与反弹趋势
+            if isinstance(df.index, pd.DatetimeIndex):
+                # 判断是否明显为日内数据（存在非 00:00 的时间部分）
+                if ((df.index.hour != 0) | (df.index.minute != 0)).any():
+                    data[symbol] = self._calculate_5min_cycle_indicators(df)
+        
+        # 叠加板块 / 行业 / 题材加权指标
+        # 如果板块因子在当前环境下因维度等问题反复报错，会严重干扰日志阅读。
+        # 这里采用“失败一次就整体关闭板块因子”的策略：
+        # - 首次失败时告警一次；
+        # - 之后不再尝试 apply_sector_factors，也不再输出相关告警。
+        global _SECTOR_FACTOR_DIM_WARNING_SUPPRESSED
+        if not _SECTOR_FACTOR_DIM_WARNING_SUPPRESSED:
+            try:
+                data = apply_sector_factors(data)
+            except Exception as e:
+                logger.warning(
+                    "计算板块因子失败，将关闭板块加权因子后续计算: %s",
+                    e,
+                )
+                _SECTOR_FACTOR_DIM_WARNING_SUPPRESSED = True
+
+        # 叠加简化市场情绪因子
+        try:
+            data = apply_simple_sentiment(data)
+        except Exception as e:
+            logger.warning(f"计算市场情绪因子失败，忽略 sentiment: {e}")
+
+        # 叠加简化政策因子
+        try:
+            data = apply_policy_factor(data)
+        except Exception as e:
+            logger.warning(f"计算政策因子失败，忽略 policy_score: {e}")
+
+        # 叠加行业 / 板块舆情因子（基于 NEWS 聚合得到的 sector_sentiment）
+        try:
+            for symbol, df in data.items():
+                if df is None or df.empty:
+                    continue
+                # 若上游已写入 sector_sentiment，则不重复覆盖
+                if "sector_sentiment" in df.columns:
+                    continue
+                try:
+                    val = float(get_sector_sentiment_for_symbol(str(symbol)))
+                except Exception:
+                    val = 0.0
+                df["sector_sentiment"] = float(val)
+        except Exception as e:  # pragma: no cover - 防御性
+            logger.warning("计算行业舆情因子失败，忽略 sector_sentiment: %s", e)
+
+        # 叠加竞价因子（基于前一日收盘与当日首个 bar 的 open/volume）
+        try:
+            data = apply_auction_factors(data)
+        except Exception as e:
+            logger.warning(f"计算竞价因子失败，忽略 auction_*: {e}")
             
         return data
+
+    def _calculate_5min_cycle_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """在分钟级数据上计算 5 分钟周期线相关指标。
+
+        目标：
+        - 基于 5 分钟聚合的高低点，构造近期压力位/支撑位；
+        - 计算 5 分钟级别的短期趋势；
+        - 标注是否处于压力区/支撑区，以及是否出现自支撑位的反弹迹象。
+        """
+        # 必要列检查
+        required_cols = ['open', 'high', 'low', 'close', 'volume']
+        if not all(col in df.columns for col in required_cols):
+            return df
+
+        if not isinstance(df.index, pd.DatetimeIndex):
+            return df
+
+        # 使用 5 分钟重采样构造更平滑的周期线
+        ohlcv = df[required_cols]
+        # 在当前 pandas 版本中使用 '5min' 作为 5 分钟频率
+        resampled = ohlcv.resample('5min').agg({
+            'open': 'first',
+            'high': 'max',
+            'low': 'min',
+            'close': 'last',
+            'volume': 'sum',
+        }).dropna()
+
+        if resampled.empty:
+            return df
+
+        win = max(int(self.cycle_5m_window), 1)
+        trend_win = max(int(self.cycle_5m_trend_window), 1)
+
+        # 5 分钟滚动高低点 -> 近端压力/支撑
+        resampled['cycle_5m_resistance'] = resampled['high'].rolling(window=win).max()
+        resampled['cycle_5m_support'] = resampled['low'].rolling(window=win).min()
+
+        # 5 分钟短期趋势（相对均线的偏离度）
+        resampled['cycle_5m_ma'] = resampled['close'].rolling(window=trend_win).mean()
+        resampled['cycle_5m_trend'] = resampled['close'] / resampled['cycle_5m_ma'] - 1
+
+        cycle_cols = ['cycle_5m_resistance', 'cycle_5m_support', 'cycle_5m_trend']
+
+        # 将 5 分钟周期指标对齐回原始分钟级索引
+        aligned = resampled[cycle_cols].reindex(df.index, method='ffill')
+        for col in cycle_cols:
+            df[col] = aligned[col]
+
+        thr = float(self.cycle_5m_near_threshold)
+
+        # 靠近 5 分钟压力位/支撑位的标记（用于压力/支撑识别）
+        df['is_near_5m_resistance'] = (
+            df['cycle_5m_resistance'].notna()
+            & (df['close'] >= df['cycle_5m_resistance'] * (1 - thr))
+            & (df['close'] <= df['cycle_5m_resistance'] * (1 + thr))
+        )
+
+        df['is_near_5m_support'] = (
+            df['cycle_5m_support'].notna()
+            & (df['close'] >= df['cycle_5m_support'] * (1 - thr))
+            & (df['close'] <= df['cycle_5m_support'] * (1 + thr))
+        )
+
+        # 自 5 分钟支撑位的反弹：
+        # - 当前处于支撑区域附近；
+        # - 5 分钟趋势向上；
+        # - 当前 bar 为上涨 bar
+        if 'price_change' in df.columns:
+            df['is_rebound_from_5m_support'] = (
+                df['is_near_5m_support']
+                & (df['cycle_5m_trend'] > 0)
+                & (df['price_change'] > 0)
+            )
+        else:
+            df['is_rebound_from_5m_support'] = False
+
+        return df
     
     def generate_signals(self, data: Dict[str, pd.DataFrame], context: Dict = None) -> List[Dict]:
         """
@@ -184,6 +338,16 @@ class VolumePriceStrategy:
             required_cols = ['volume_ratio', 'price_change', f'ma{self.price_ma_short}']
             if any(pd.isna(latest.get(col)) for col in required_cols):
                 continue
+
+            # 5 分钟周期线相关的最新状态（若存在）
+            cycle_5m_info = {
+                'cycle_5m_resistance': float(latest['cycle_5m_resistance']) if 'cycle_5m_resistance' in latest and pd.notna(latest['cycle_5m_resistance']) else None,
+                'cycle_5m_support': float(latest['cycle_5m_support']) if 'cycle_5m_support' in latest and pd.notna(latest['cycle_5m_support']) else None,
+                'cycle_5m_trend': float(latest['cycle_5m_trend']) if 'cycle_5m_trend' in latest and pd.notna(latest['cycle_5m_trend']) else None,
+                'is_near_5m_resistance': bool(latest['is_near_5m_resistance']) if 'is_near_5m_resistance' in latest and not pd.isna(latest['is_near_5m_resistance']) else False,
+                'is_near_5m_support': bool(latest['is_near_5m_support']) if 'is_near_5m_support' in latest and not pd.isna(latest['is_near_5m_support']) else False,
+                'is_rebound_from_5m_support': bool(latest['is_rebound_from_5m_support']) if 'is_rebound_from_5m_support' in latest and not pd.isna(latest['is_rebound_from_5m_support']) else False,
+            }
             
             # === 买入信号检测 ===
             
@@ -206,6 +370,7 @@ class VolumePriceStrategy:
                         'volume_ratio': latest['volume_ratio'],
                         'price_change': latest['price_change'],
                         'obv_signal': latest['obv_signal'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -229,6 +394,7 @@ class VolumePriceStrategy:
                         'pattern': 'bottom_reversal',
                         'consecutive_low_volume_days': recent_5d['consecutive_low_volume'].max(),
                         'volume_ratio': latest['volume_ratio'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -252,6 +418,7 @@ class VolumePriceStrategy:
                         'obv': latest['obv'],
                         'obv_ma': latest['obv_ma'],
                         'volume_ratio': latest['volume_ratio'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -273,6 +440,7 @@ class VolumePriceStrategy:
                         'pattern': 'breakout_surge',
                         'breakout_level': recent_10d['high'].max(),
                         'volume_ratio': latest['volume_ratio'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -296,6 +464,7 @@ class VolumePriceStrategy:
                         'pattern': 'volume_stagnation',
                         'volume_ratio': latest['volume_ratio'],
                         'price_change': latest['price_change'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -317,6 +486,7 @@ class VolumePriceStrategy:
                         'pattern': 'price_volume_divergence',
                         'price_change_3d': latest['price_change_3d'],
                         'volume_ratio': latest['volume_ratio'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue
@@ -337,6 +507,7 @@ class VolumePriceStrategy:
                         'pattern': 'obv_death_cross',
                         'obv': latest['obv'],
                         'obv_ma': latest['obv_ma'],
+                        **cycle_5m_info,
                     }
                 ))
                 continue

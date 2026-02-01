@@ -5,9 +5,11 @@
 
 import akshare as ak
 import pandas as pd
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from datetime import datetime, date
 import logging
+import threading
+import time
 from .base_provider import (
     BaseDataProvider, DataQuery, DataResponse, DataType
 )
@@ -36,7 +38,12 @@ class FuturesDataProvider(BaseDataProvider):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("FuturesDataProvider", config)
-        self.cache = {}
+        self.cache: Dict[str, Any] = {}
+        # 订阅相关：symbol -> callback
+        self.subscribers: Dict[str, Callable[[str, Dict[str, Any], datetime], None]] = {}
+        self._subscribe_thread: threading.Thread | None = None
+        self._stop_subscribe: bool = False
+        self._subscribe_interval: float = float(self.config.get("subscribe_interval", 2.0))
         
     def initialize(self) -> bool:
         """初始化期货数据源"""
@@ -240,14 +247,78 @@ class FuturesDataProvider(BaseDataProvider):
     
     def subscribe(self, symbols: List[str], callback) -> bool:
         """订阅期货实时数据"""
-        # TODO: 实现期货WebSocket订阅
-        logger.info(f"Subscribed to {len(symbols)} futures symbols")
+        valid_symbols = self.validate_symbols(symbols)
+        if not valid_symbols or callback is None:
+            return False
+
+        for symbol in valid_symbols:
+            self.subscribers[symbol] = callback
+
+        logger.info(
+            "Subscribed to %d futures symbols (polling interval=%.2fs)",
+            len(valid_symbols),
+            self._subscribe_interval,
+        )
+
+        # 启动后台轮询线程
+        if self._subscribe_thread is None or not self._subscribe_thread.is_alive():
+            self._stop_subscribe = False
+            self._subscribe_thread = threading.Thread(
+                target=self._subscribe_loop,
+                name="FuturesDataProviderSubscribeLoop",
+                daemon=True,
+            )
+            self._subscribe_thread.start()
+
         return True
     
     def unsubscribe(self, symbols: List[str]) -> bool:
         """取消订阅期货数据"""
-        logger.info(f"Unsubscribed from {len(symbols)} futures symbols")
+        valid_symbols = self.validate_symbols(symbols)
+        for symbol in valid_symbols:
+            self.subscribers.pop(symbol, None)
+
+        logger.info("Unsubscribed from %d futures symbols", len(valid_symbols))
+
+        if not self.subscribers:
+            self._stop_subscribe = True
+
         return True
+
+    def _subscribe_loop(self) -> None:
+        """后台轮询期货实时行情并触发订阅回调"""
+        while not self._stop_subscribe:
+            try:
+                symbols = list(self.subscribers.keys())
+                if not symbols:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                resp = self.get_realtime_data(symbols)
+                if not resp.success or resp.data is None or resp.data.empty:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                df = resp.data
+                for _, row in df.iterrows():
+                    symbol = str(row.get("symbol", ""))
+                    cb = self.subscribers.get(symbol)
+                    if cb is None:
+                        continue
+                    try:
+                        cb(symbol, row.to_dict(), resp.timestamp)
+                    except Exception as exc:  # pragma: no cover - 防御性
+                        logger.warning("FuturesDataProvider callback failed for %s: %s", symbol, exc)
+
+            except Exception as exc:  # pragma: no cover - 防御性
+                logger.warning("FuturesDataProvider subscribe loop error: %s", exc)
+
+            time.sleep(self._subscribe_interval)
+
+    def close(self) -> None:
+        """关闭数据源并停止订阅线程"""
+        self._stop_subscribe = True
+        super().close()
     
     def get_main_contracts(self, varieties: List[str]) -> Dict[str, str]:
         """

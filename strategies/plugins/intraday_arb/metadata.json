@@ -1,0 +1,22 @@
+{
+  "id": "intraday_arb",
+  "name": "日内套利策略模板",
+  "version": "1.0.0",
+  "author": "AStock Quant Engine",
+  "description": "基于分钟级 K 线 + T 模式的日内套利策略模板，叠加 5 分钟周期线、板块、情绪与政策因子。",
+  "category": "intraday",
+  "tags": ["日内", "T0", "T1", "分钟级", "周期线", "情绪", "政策"],
+  "parameters": {
+    "t_mode": {
+      "type": "enum",
+      "default": "T0_T1",
+      "options": ["NONE", "T0", "T1", "T0_T1"],
+      "description": "T 交易模式: 日内回转 / 隔日回转 / 组合"
+    }
+  },
+  "dependencies": ["numpy", "pandas"],
+  "enabled": true,
+  "min_bars": 60,
+  "created_at": "2026-01-31T12:00:00",
+  "updated_at": "2026-01-31T12:00:00"
+}

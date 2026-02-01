@@ -5,9 +5,11 @@ A股数据提供者
 
 import akshare as ak
 import pandas as pd
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from datetime import datetime, date, timedelta
 import logging
+import threading
+import time
 from .base_provider import (
     BaseDataProvider, DataQuery, DataResponse, DataType
 )
@@ -20,8 +22,13 @@ class StockDataProvider(BaseDataProvider):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("StockDataProvider", config)
-        self.cache = {}
-        self.subscribers = {}
+        self.cache: Dict[str, Any] = {}
+        # 订阅相关：symbol -> callback
+        self.subscribers: Dict[str, Callable[[str, Dict[str, Any], datetime], None]] = {}
+        self._subscribe_thread: threading.Thread | None = None
+        self._stop_subscribe: bool = False
+        # 轮询间隔（秒），可通过 config['subscribe_interval'] 覆盖
+        self._subscribe_interval: float = float(self.config.get("subscribe_interval", 2.0))
         
     def initialize(self) -> bool:
         """初始化数据源"""
@@ -279,19 +286,93 @@ class StockDataProvider(BaseDataProvider):
         )
     
     def subscribe(self, symbols: List[str], callback) -> bool:
-        """订阅实时数据（需要实现WebSocket）"""
-        # TODO: 实现WebSocket订阅
-        for symbol in symbols:
+        """订阅实时数据
+
+        当前实现为基于轮询的订阅：
+        - 周期性调用 get_realtime_data
+        - 对每个标的调用回调: callback(symbol, row_dict, timestamp)
+        """
+        valid_symbols = self.validate_symbols(symbols)
+        if not valid_symbols or callback is None:
+            return False
+
+        for symbol in valid_symbols:
             self.subscribers[symbol] = callback
-        logger.info(f"Subscribed to {len(symbols)} symbols")
+
+        logger.info("Subscribed to %d symbols (polling interval=%.2fs)", len(valid_symbols), self._subscribe_interval)
+
+        # 启动后台轮询线程（若尚未启动）
+        if self._subscribe_thread is None or not self._subscribe_thread.is_alive():
+            self._stop_subscribe = False
+            self._subscribe_thread = threading.Thread(
+                target=self._subscribe_loop,
+                name="StockDataProviderSubscribeLoop",
+                daemon=True,
+            )
+            self._subscribe_thread.start()
+
         return True
     
     def unsubscribe(self, symbols: List[str]) -> bool:
         """取消订阅"""
-        for symbol in symbols:
+        valid_symbols = self.validate_symbols(symbols)
+        for symbol in valid_symbols:
             self.subscribers.pop(symbol, None)
-        logger.info(f"Unsubscribed from {len(symbols)} symbols")
+
+        logger.info("Unsubscribed from %d symbols", len(valid_symbols))
+
+        # 若无任何订阅，停止轮询线程
+        if not self.subscribers:
+            self._stop_subscribe = True
+
         return True
+
+    def _subscribe_loop(self) -> None:
+        """后台轮询实时行情并触发订阅回调。
+
+        注意：这是一个简易实现，用轮询模拟 WebSocket 推送，
+        主要用于开发与测试，生产可替换为真正的流式行情源。
+        """
+        while not self._stop_subscribe:
+            try:
+                symbols = list(self.subscribers.keys())
+                if not symbols:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                resp = self.get_realtime_data(symbols)
+                if not resp.success or resp.data is None or resp.data.empty:
+                    time.sleep(self._subscribe_interval)
+                    continue
+
+                df = resp.data
+
+                # 将无后缀代码映射回订阅时的标准代码（如 000001 -> 000001.SZ）
+                code_to_full: Dict[str, str] = {}
+                for full_symbol in symbols:
+                    code = full_symbol.split(".")[0]
+                    code_to_full[code] = full_symbol
+
+                for _, row in df.iterrows():
+                    raw_code = str(row.get("symbol", ""))
+                    full_symbol = code_to_full.get(raw_code, raw_code)
+                    cb = self.subscribers.get(full_symbol)
+                    if cb is None:
+                        continue
+                    try:
+                        cb(full_symbol, row.to_dict(), resp.timestamp)
+                    except Exception as exc:  # pragma: no cover - 防御性
+                        logger.warning("StockDataProvider callback failed for %s: %s", full_symbol, exc)
+
+            except Exception as exc:  # pragma: no cover - 防御性
+                logger.warning("StockDataProvider subscribe loop error: %s", exc)
+
+            time.sleep(self._subscribe_interval)
+
+    def close(self) -> None:
+        """关闭数据源并停止订阅线程"""
+        self._stop_subscribe = True
+        super().close()
     
     def get_stock_list(self) -> pd.DataFrame:
         """获取A股股票列表"""
