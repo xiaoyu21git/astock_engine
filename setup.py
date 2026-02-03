@@ -47,11 +47,11 @@ ext_modules = [
         "quant_engine._native.fast_factors",
         ["bindings/modules/EventCore/eventbus_binding.cpp"],
     ),
-    # 以后加模块，只加这里 👇
-    # cpp_extension(
-    #     "quant_engine._native.eventbus",
-    #     ["bindings/eventbus.cpp"],
-    # ),
+    # 新增 GlobalState pybind11 模块
+    cpp_extension(
+        "globalstate_native",
+        ["../src/engine/src/GlobalState.cpp", "pybindings_globalstate.cpp"],
+    ),
 ]
 
 setup(

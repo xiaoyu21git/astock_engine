@@ -31,8 +31,8 @@ class SymbolInfo(Base):
     list_date = Column(Date, comment='上市日期')
     delist_date = Column(Date, comment='退市日期')
     status = Column(String(10), default='active', comment='状态: active/delisted')
-    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+    created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
+    updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now(), comment='更新时间')
 
 
 class DailyBar(Base):
@@ -55,7 +55,7 @@ class DailyBar(Base):
     pe_ratio = Column(Float, comment='市盈率')
     pb_ratio = Column(Float, comment='市净率')
     market_cap = Column(Float, comment='总市值')
-    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
+    created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
     
     __table_args__ = (
         Index('idx_daily_bar_symbol_date', 'symbol', 'trade_date'),
@@ -77,7 +77,7 @@ class MinuteBar(Base):
     close = Column(Float, comment='收盘价')
     volume = Column(Float, comment='成交量')
     turnover = Column(Float, comment='成交额')
-    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
+    created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
     
     __table_args__ = (
         Index('idx_minute_bar_symbol_datetime', 'symbol', 'datetime'),
@@ -99,7 +99,7 @@ class TickData(Base):
     bid_volume = Column(Float, comment='买一量')
     ask_price = Column(Float, comment='卖一价')
     ask_volume = Column(Float, comment='卖一量')
-    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
+    created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
     
     __table_args__ = (
         Index('idx_tick_data_symbol_datetime', 'symbol', 'datetime'),

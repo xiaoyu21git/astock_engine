@@ -4,6 +4,8 @@ A股数据提供者
 """
 
 import akshare as ak
+import json
+import os
 import pandas as pd
 from typing import List, Dict, Optional, Any, Callable
 from datetime import datetime, date, timedelta
@@ -375,10 +377,30 @@ class StockDataProvider(BaseDataProvider):
         super().close()
     
     def get_stock_list(self) -> pd.DataFrame:
-        """获取A股股票列表"""
+        """获取A股股票列表，支持多数据源（eastmoney/ths/tencent）"""
+        # 读取配置文件
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'config', 'data_source.json')
+        source = 'eastmoney'
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    conf = json.load(f)
+                    source = conf.get('stock_list_source', 'eastmoney')
+            except Exception as e:
+                logger.warning(f"读取数据源配置失败，使用默认eastmoney: {e}")
         try:
-            df = ak.stock_zh_a_spot_em()
-            return df[['代码', '名称']].rename(columns={'代码': 'symbol', '名称': 'name'})
+            if source == 'eastmoney':
+                df = ak.stock_zh_a_spot_em()
+                return df[['代码', '名称']].rename(columns={'代码': 'symbol', '名称': 'name'})
+            elif source == 'ths':
+                df = ak.stock_info_a_code_name_ths()
+                return df[['code', 'name']].rename(columns={'code': 'symbol'})
+            elif source == 'tencent':
+                df = ak.stock_zh_a_spot()
+                return df[['代码', '名称']].rename(columns={'代码': 'symbol', '名称': 'name'})
+            else:
+                logger.error(f"未知股票列表数据源: {source}")
+                return pd.DataFrame()
         except Exception as e:
-            logger.error(f"Failed to get stock list: {e}")
+            logger.error(f"Failed to get stock list from {source}: {e}")
             return pd.DataFrame()
