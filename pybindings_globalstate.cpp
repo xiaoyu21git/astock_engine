@@ -32,7 +32,7 @@ public:
     }
 };
 
-PYBIND11_MODULE(globalstate_native, m) {
+PYBIND11_MODULE(_native, m) {
     py::class_<PyGlobalState, QObject>(m, "GlobalState")
         .def(py::init<>())
         .def_property("usePreciseMatch", &PyGlobalState::usePreciseMatch, &PyGlobalState::setUsePreciseMatch)

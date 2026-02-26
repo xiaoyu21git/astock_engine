@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
-project(astock_python)
+
+# 强制 C++17 并为 MSVC 添加 /Zc:__cplusplus
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
 # ==================== 开关 ====================
 if(NOT BUILD_PYTHON_EXTENSIONS)
@@ -91,18 +95,23 @@ endif()
 set_target_properties(astock_engine_native PROPERTIES
     PREFIX ""
     OUTPUT_NAME "_native"
+    SUFFIX ".pyd"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/astock_engine"
 )
+target_compile_options(astock_engine_native PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/permissive->)
 
 set_target_properties(eventbus_native PROPERTIES
     PREFIX ""
     OUTPUT_NAME "eventbus_native"
 )
+target_compile_options(eventbus_native PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/permissive->)
 
 if(TARGET database_native)
     set_target_properties(database_native PROPERTIES
         PREFIX ""
         OUTPUT_NAME "database_native"
     )
+    target_compile_options(database_native PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/permissive->)
 endif()
 
 # ==================== 包含目录 ====================

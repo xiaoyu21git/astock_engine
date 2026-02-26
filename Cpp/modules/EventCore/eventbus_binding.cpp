@@ -4,7 +4,7 @@
 #include <pybind11/functional.h>
 #include "EventSystem.hpp"
 #include "EventBus.hpp"
-#include "GlobalEventBusRegistry.h"
+// GlobalEventBusRegistry已废弃 - 不再使用
 
 namespace py = pybind11;
 

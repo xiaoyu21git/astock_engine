@@ -147,10 +147,21 @@ class EventBus:
             callback: 回调函数
         """
         with self._lock:
-            if event_type in self._subscribers:
+            # 支持字符串和EventType枚举
+            event_type_key = event_type
+            if isinstance(event_type, str):
+                # 如果是字符串，需要找到对应的EventType枚举
                 try:
-                    self._subscribers[event_type].remove(callback)
-                    logger.debug(f"Unsubscribed from {event_type.value}")
+                    event_type_key = EventType(event_type)
+                except ValueError:
+                    # 如果不是标准EventType，保持为字符串
+                    event_type_key = event_type
+            
+            if event_type_key in self._subscribers:
+                try:
+                    self._subscribers[event_type_key].remove(callback)
+                    event_type_str = event_type_key.value if hasattr(event_type_key, 'value') else str(event_type_key)
+                    logger.debug(f"Unsubscribed from {event_type_str}")
                 except ValueError:
                     pass
     

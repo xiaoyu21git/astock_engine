@@ -49,7 +49,7 @@ ext_modules = [
     ),
     # 新增 GlobalState pybind11 模块
     cpp_extension(
-        "globalstate_native",
+        "_native",
         ["../src/engine/src/GlobalState.cpp", "pybindings_globalstate.cpp"],
     ),
 ]
