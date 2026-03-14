@@ -5,7 +5,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/chrono.h>
 #include "database/DatabaseConfig.h"
-#include "database/ConnectionPool.h"
+#include "database/QtMySQLDatabase.h"
 #include "database/MarketDataModels.h"
 #include "database/MarketDataRepository.h"
 
@@ -102,25 +102,32 @@ PYBIND11_MODULE(database_native, m) {
         .def_readwrite("ask_volume", &TickData::ask_volume)
         .def_readwrite("created_at", &TickData::created_at);
     
-    // ========== ConnectionPool ==========
+    // ========== QtMySQLDatabase ==========
+    // 使用QtMySQLDatabase替代ConnectionPool，提供简洁的数据库访问
     
-    py::class_<ConnectionPool, std::shared_ptr<ConnectionPool>>(m, "ConnectionPool")
-        .def(py::init<const DatabaseConfig&>())
-        .def("initialize", &ConnectionPool::initialize)
-        .def("shutdown", &ConnectionPool::shutdown)
-        .def("get_stats", &ConnectionPool::getStats);
-    
-    py::class_<ConnectionPool::PoolStats>(m, "PoolStats")
-        .def_readonly("total_connections", &ConnectionPool::PoolStats::total_connections)
-        .def_readonly("active_connections", &ConnectionPool::PoolStats::active_connections)
-        .def_readonly("idle_connections", &ConnectionPool::PoolStats::idle_connections)
-        .def_readonly("failed_acquisitions", &ConnectionPool::PoolStats::failed_acquisitions)
-        .def_readonly("total_acquisitions", &ConnectionPool::PoolStats::total_acquisitions);
+    py::class_<QtMySQLDatabase, std::shared_ptr<QtMySQLDatabase>>(m, "QtMySQLDatabase")
+        .def(py::init<const DatabaseConfig&, bool>(),
+             py::arg("config"),
+             py::arg("use_connection_pool") = false)
+        .def("open", &QtMySQLDatabase::open)
+        .def("close", &QtMySQLDatabase::close)
+        .def("is_open", &QtMySQLDatabase::isOpen)
+        .def("get_last_error", [](QtMySQLDatabase& self) {
+            return self.getLastError().toStdString();
+        })
+        .def("get_database_version", [](QtMySQLDatabase& self) {
+            return self.getDatabaseVersion().toStdString();
+        })
+        .def("table_exists", [](QtMySQLDatabase& self, const std::string& tableName) {
+            return self.tableExists(QString::fromStdString(tableName));
+        })
+        .def("commit_transaction", &QtMySQLDatabase::commitTransaction)
+        .def("rollback_transaction", &QtMySQLDatabase::rollbackTransaction);
     
     // ========== MarketDataRepository ==========
     
     py::class_<MarketDataRepository>(m, "MarketDataRepository")
-        .def(py::init<std::shared_ptr<ConnectionPool>>())
+        .def(py::init<std::shared_ptr<QtMySQLDatabase>>())
         // Symbol Info
         .def("save_symbol", &MarketDataRepository::saveSymbol)
         .def("get_symbol", &MarketDataRepository::getSymbol)

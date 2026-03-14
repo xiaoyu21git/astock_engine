@@ -86,6 +86,9 @@ else()
 endif()
 
 # ==================== Database Python模块 ====================
+# 查找Qt6（database_native 依赖的 infrastructure 使用了 Qt）
+find_package(Qt6 COMPONENTS Core Sql QUIET)
+
 # 仅当同时找到 MySQL 开发库且存在 infrastructure 目标时才构建
 if(MYSQL_LIB AND MYSQL_INCLUDE_DIR AND TARGET infrastructure)
     add_library(database_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings_database.cpp")
@@ -152,6 +155,10 @@ if(TARGET database_native)
         ${Python_LIBRARIES}
         ${MYSQL_LIB}
     )
+    # 链接Qt库（infrastructure头文件依赖Qt）
+    if(TARGET Qt6::Core AND TARGET Qt6::Sql)
+        target_link_libraries(database_native PRIVATE Qt6::Core Qt6::Sql)
+    endif()
 endif()
 
 # ==================== 编译定义 ====================
