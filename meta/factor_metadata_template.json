@@ -1,0 +1,19 @@
+{
+  "common": {
+    "name": {"type": "string", "default": "", "description": "因子名称"},
+    "description": {"type": "string", "default": "", "description": "因子描述"}
+  },
+  "ma_crossover": {
+    "parameters": {
+      "fast_window": {"type": "int", "default": 5, "min": 1, "max": 100, "description": "快线窗口"},
+      "slow_window": {"type": "int", "default": 20, "min": 2, "max": 200, "description": "慢线窗口"},
+      "method": {"type": "enum", "options": ["SMA", "EMA"], "default": "SMA", "description": "均线类型"}
+    }
+  },
+  "sentiment": {
+    "parameters": {
+      "window": {"type": "int", "default": 10, "min": 1, "max": 100, "description": "情绪窗口"},
+      "use_volume": {"type": "bool", "default": false, "description": "是否使用成交量"}
+    }
+  }
+}
