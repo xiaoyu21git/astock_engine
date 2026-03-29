@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 # 可选：在此写死默认 token / account_id，便于本地快速联调
 # 使用方式：直接把 None 替换成你的实际值（不要提交到公共仓库）
-DEFAULT_GM_TOKEN = "3eb70d763d0d6dd5d1514a3f26e674492825feba"
-DEFAULT_GM_ACCOUNT_ID = "3ef09ab8-fea6-11f0-bb4e-00163e022aa6"
+DEFAULT_GM_TOKEN = None
+DEFAULT_GM_ACCOUNT_ID = None
 
 
 class MyQuantBroker(Broker):
