@@ -50,12 +50,16 @@ class DailyBar(Base):
     volume = Column(Float, comment='成交量')
     turnover = Column(Float, comment='成交额')
     change_pct = Column(Float, comment='涨跌幅%')
+    change_amt = Column(Float, comment='涨跌额')
     amplitude = Column(Float, comment='振幅%')
     turnover_rate = Column(Float, comment='换手率%')
     pe_ratio = Column(Float, comment='市盈率')
     pb_ratio = Column(Float, comment='市净率')
     market_cap = Column(Float, comment='总市值')
+    circulating_market_cap = Column(Float, comment='流通市值')
+    data_source = Column(String(50), default='UNKNOWN', comment='数据源')
     created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
+    updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now(), comment='更新时间')
     
     __table_args__ = (
         Index('idx_daily_bar_symbol_date', 'symbol', 'trade_date'),

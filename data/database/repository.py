@@ -15,6 +15,12 @@ from .session import session_scope
 
 class DatabaseRepository:
     """数据库仓储类"""
+
+    @staticmethod
+    def _coerce_dataframe_value(value):
+        if pd.isna(value):
+            return None
+        return value
     
     # ============ Symbol Info 操作 ============
     
@@ -102,25 +108,31 @@ class DatabaseRepository:
                     # 更新现有记录
                     for col in df.columns:
                         if col not in ['symbol', 'trade_date', 'id', 'created_at']:
-                            setattr(existing, col, row.get(col))
+                            value = DatabaseRepository._coerce_dataframe_value(row.get(col))
+                            if value is None:
+                                continue
+                            setattr(existing, col, value)
                 else:
                     # 创建新记录
                     record = DailyBar(
                         symbol=row['symbol'],
                         trade_date=row['trade_date'],
-                        open=row.get('open'),
-                        high=row.get('high'),
-                        low=row.get('low'),
-                        close=row.get('close'),
-                        pre_close=row.get('pre_close'),
-                        volume=row.get('volume'),
-                        turnover=row.get('turnover'),
-                        change_pct=row.get('change_pct'),
-                        amplitude=row.get('amplitude'),
-                        turnover_rate=row.get('turnover_rate'),
-                        pe_ratio=row.get('pe_ratio'),
-                        pb_ratio=row.get('pb_ratio'),
-                        market_cap=row.get('market_cap')
+                        open=DatabaseRepository._coerce_dataframe_value(row.get('open')),
+                        high=DatabaseRepository._coerce_dataframe_value(row.get('high')),
+                        low=DatabaseRepository._coerce_dataframe_value(row.get('low')),
+                        close=DatabaseRepository._coerce_dataframe_value(row.get('close')),
+                        pre_close=DatabaseRepository._coerce_dataframe_value(row.get('pre_close')),
+                        volume=DatabaseRepository._coerce_dataframe_value(row.get('volume')),
+                        turnover=DatabaseRepository._coerce_dataframe_value(row.get('turnover')),
+                        change_pct=DatabaseRepository._coerce_dataframe_value(row.get('change_pct')),
+                        change_amt=DatabaseRepository._coerce_dataframe_value(row.get('change_amt')),
+                        amplitude=DatabaseRepository._coerce_dataframe_value(row.get('amplitude')),
+                        turnover_rate=DatabaseRepository._coerce_dataframe_value(row.get('turnover_rate')),
+                        pe_ratio=DatabaseRepository._coerce_dataframe_value(row.get('pe_ratio')),
+                        pb_ratio=DatabaseRepository._coerce_dataframe_value(row.get('pb_ratio')),
+                        market_cap=DatabaseRepository._coerce_dataframe_value(row.get('market_cap')),
+                        circulating_market_cap=DatabaseRepository._coerce_dataframe_value(row.get('circulating_market_cap')),
+                        data_source=DatabaseRepository._coerce_dataframe_value(row.get('data_source'))
                     )
                     records.append(record)
             
@@ -165,11 +177,14 @@ class DatabaseRepository:
                     'volume': bar.volume,
                     'turnover': bar.turnover,
                     'change_pct': bar.change_pct,
+                    'change_amt': bar.change_amt,
                     'amplitude': bar.amplitude,
                     'turnover_rate': bar.turnover_rate,
                     'pe_ratio': bar.pe_ratio,
                     'pb_ratio': bar.pb_ratio,
-                    'market_cap': bar.market_cap
+                    'market_cap': bar.market_cap,
+                    'circulating_market_cap': bar.circulating_market_cap,
+                    'data_source': bar.data_source,
                 })
             
             return pd.DataFrame(data)
