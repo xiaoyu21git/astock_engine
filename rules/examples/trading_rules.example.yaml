@@ -1,0 +1,72 @@
+version: 1
+namespace: trading
+rules:
+  - id: market-session-closed
+    name: Block new exposure when market session is closed
+    stage: market
+    priority: 100
+    when:
+      op: not
+      value:
+        op: is_trading_session
+        session:
+          var: market.session
+    then:
+      result: block
+      reason_code: market_session_closed
+      message: Market session is closed
+      payload:
+        mode: observe_only
+
+  - id: symbol-outside-pool
+    name: Block candidates outside strategy symbol pool
+    stage: eligibility
+    priority: 90
+    when:
+      op: not
+      value:
+        op: symbol_in_pool
+        symbol:
+          var: candidate.symbol
+        pool:
+          var: strategy.symbol_pool
+    then:
+      result: block
+      reason_code: symbol_outside_scope
+      message: Candidate symbol is outside the configured scope
+
+  - id: portfolio-exposure-limit
+    name: Limit target exposure when projected gross exposure is too high
+    stage: portfolio
+    priority: 80
+    when:
+      op: gt
+      left:
+        var: portfolio.projected_exposure
+      right:
+        var: rule_limits.max_exposure
+    then:
+      result: limit
+      reason_code: portfolio_exposure_limit
+      message: Projected exposure exceeds configured cap
+      payload:
+        max_exposure:
+          var: rule_limits.max_exposure
+        projected_exposure:
+          var: portfolio.projected_exposure
+
+  - id: momentum-score
+    name: Add ranking score to positive momentum candidates
+    stage: signal
+    priority: 40
+    when:
+      op: gt
+      left:
+        var: candidate.momentum
+      right: 0
+    then:
+      result: score
+      reason_code: positive_momentum
+      message: Momentum contributes to candidate ranking
+      score:
+        var: candidate.momentum
