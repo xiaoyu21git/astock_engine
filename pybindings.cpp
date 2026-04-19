@@ -69,6 +69,48 @@ PYBIND11_MODULE(_native, m) {
         return "ASTOCK Quant Engine v0.1.0";
     }, "Get engine information");
 
+    m.def(
+        "suggest_rule_templates",
+        [](const std::string& text,
+           const std::string& phase,
+           const std::string& action,
+           const std::vector<std::string>& tags,
+           const std::vector<std::string>& available_features,
+           bool only_ready,
+           int limit) -> py::dict {
+            py::object bridge_module = py::module_::import("astock_engine.rule_template_bridge");
+            py::object result = bridge_module.attr("suggest_rule_templates_for_bridge")(
+                text,
+                phase,
+                action,
+                tags,
+                available_features,
+                only_ready,
+                limit
+            );
+            return result.cast<py::dict>();
+        },
+        py::arg("text"),
+        py::arg("phase") = "",
+        py::arg("action") = "",
+        py::arg("tags") = std::vector<std::string>{},
+        py::arg("available_features") = std::vector<std::string>{},
+        py::arg("only_ready") = false,
+        py::arg("limit") = 5,
+        "Bridge to Python rule template advisor and return template suggestions as dict"
+    );
+
+    m.def(
+        "suggest_rule_templates_json",
+        [](const std::string& request_json) -> std::string {
+            py::object bridge_module = py::module_::import("astock_engine.rule_template_bridge");
+            py::object result = bridge_module.attr("suggest_rule_templates_from_json")(request_json);
+            return result.cast<std::string>();
+        },
+        py::arg("request_json"),
+        "Bridge to Python rule template advisor and return template suggestions as JSON"
+    );
+
     // 文件操作（简化）
     m.def("read_file", [](const std::string& path) -> std::string {
         // 这里应该实现实际的文件读取

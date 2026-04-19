@@ -1,0 +1,59 @@
+version: 1
+namespace: trading.watch.cooling_tail_low_level_first_board_follow_insufficient
+rules:
+  - id: cooling-tail-low-level-first-board-follow-insufficient-block
+    name: 退潮尾声低位首板跟随不足阻断规则
+    stage: signal
+    priority: 97
+    description: 退潮尾声里低位首板跟随不足并失守支撑时，取消继续跟踪与接力。
+    tags: [a_share_short_term, watch, cooling_tail, low_level_first_board]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_tail_confirmed
+        - op: truthy
+          value:
+            var: candidate.low_level_first_board_confirmed
+        - op: lt
+          left:
+            var: candidate.low_level_first_board_follow_ratio
+          right: 0.8
+        - op: lt
+          left:
+            var: candidate.close_below_low_level_first_board_support_ratio
+          right: 0.998
+    then:
+      result: block
+      reason_code: cooling_tail_low_level_first_board_follow_insufficient_block
+      message: 退潮尾声低位首板跟随不足，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: cooling-tail-low-level-first-board-continue-watch
+    name: 退潮尾声低位首板继续观察规则
+    stage: signal
+    priority: 60
+    description: 退潮尾声低位首板仍有一定跟随时，仅继续观察。
+    tags: [a_share_short_term, watch, cooling_tail, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_tail_confirmed
+        - op: truthy
+          value:
+            var: candidate.low_level_first_board_confirmed
+        - op: ge
+          left:
+            var: candidate.low_level_first_board_follow_ratio
+          right: 0.8
+    then:
+      result: pass
+      reason_code: cooling_tail_low_level_first_board_continue_watch
+      message: 退潮尾声低位首板仍有一定跟随，继续观察
+      payload:
+        state: watchlist

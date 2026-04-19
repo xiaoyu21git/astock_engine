@@ -1,0 +1,62 @@
+version: 1
+namespace: trading.exit.cooling_mid_weak_repair_rebreak
+rules:
+  - id: cooling-mid-weak-repair-rebreak-exit
+    name: 退潮中继的弱修复再破位退出规则
+    stage: rebalance
+    priority: 94
+    description: 退潮中继阶段弱修复后再次破位并失守支点时，执行退出。
+    tags: [a_share_short_term, exit, cooling_mid, weak_repair_rebreak]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_mid_confirmed
+        - op: truthy
+          value:
+            var: position.weak_repair_confirmed
+        - op: truthy
+          value:
+            var: position.rebreak_after_weak_repair_confirmed
+        - op: lt
+          left:
+            var: position.close_below_weak_repair_pivot_ratio
+          right: 0.997
+    then:
+      result: exit
+      reason_code: cooling_mid_weak_repair_rebreak_exit
+      message: 退潮中继的弱修复再破位，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: cooling-mid-weak-repair-rebreak-reduce
+    name: 退潮中继弱修复再破位减仓规则
+    stage: rebalance
+    priority: 81
+    description: 弱修复再破位开始形成但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, cooling_mid, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_mid_confirmed
+        - op: truthy
+          value:
+            var: position.weak_repair_confirmed
+        - op: truthy
+          value:
+            var: position.rebreak_after_weak_repair_confirmed
+        - op: lt
+          left:
+            var: position.close_below_weak_repair_pivot_ratio
+          right: 1.0
+    then:
+      result: reduce
+      reason_code: cooling_mid_weak_repair_rebreak_reduce
+      message: 退潮中继弱修复再破位转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

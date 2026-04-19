@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.reseal_board_break_loss
+rules:
+  - id: reseal-board-break-loss-exit
+    name: 回封后炸板失守退出规则
+    stage: rebalance
+    priority: 96
+    description: 回封成功后再次炸板并失守承接位时，直接退出。
+    tags: [a_share_short_term, exit, reseal, board_break]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.reseal_success_confirmed
+        - op: truthy
+          value:
+            var: position.second_board_break_confirmed
+        - op: lt
+          left:
+            var: position.close_below_reseal_support_ratio
+          right: 0.996
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+    then:
+      result: exit
+      reason_code: reseal_board_break_loss_exit
+      message: 回封后再次炸板失守，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: reseal-board-break-loss-reduce
+    name: 回封后炸板失守减仓规则
+    stage: rebalance
+    priority: 83
+    description: 回封后再次炸板但承接尚未完全崩坏时，先减仓防守。
+    tags: [a_share_short_term, exit, reseal, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.reseal_success_confirmed
+        - op: truthy
+          value:
+            var: position.second_board_break_confirmed
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 65
+    then:
+      result: reduce
+      reason_code: reseal_board_break_loss_reduce
+      message: 回封后再次炸板偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

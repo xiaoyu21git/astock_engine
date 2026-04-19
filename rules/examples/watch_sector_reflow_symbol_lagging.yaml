@@ -1,0 +1,61 @@
+version: 1
+namespace: trading.watch.sector_reflow_symbol_lagging
+rules:
+  - id: sector-reflow-symbol-lagging-block
+    name: 板块回流但个股掉队阻断规则
+    stage: signal
+    priority: 97
+    description: 板块回流后个股未形成同步跟随且失守参考位时，取消继续跟踪。
+    tags: [a_share_short_term, watch, sector_reflow, symbol_lagging]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.sector_reflow_confirmed
+        - op: ge
+          left:
+            var: candidate.sector_relative_lag_rank
+          right: 6
+        - op: lt
+          left:
+            var: candidate.reflow_follow_strength_score
+          right: 55
+        - op: lt
+          left:
+            var: candidate.close_below_reflow_reference_ratio
+          right: 0.998
+    then:
+      result: block
+      reason_code: sector_reflow_symbol_lagging_block
+      message: 板块回流但个股掉队，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: sector-reflow-symbol-continue-watch
+    name: 板块回流继续观察规则
+    stage: signal
+    priority: 60
+    description: 板块回流且个股仍保留一定跟随强度时，仅继续观察。
+    tags: [a_share_short_term, watch, sector_reflow, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.sector_reflow_confirmed
+        - op: lt
+          left:
+            var: candidate.sector_relative_lag_rank
+          right: 6
+        - op: ge
+          left:
+            var: candidate.reflow_follow_strength_score
+          right: 55
+    then:
+      result: pass
+      reason_code: sector_reflow_symbol_continue_watch
+      message: 板块回流且个股未掉队，继续观察
+      payload:
+        state: watchlist

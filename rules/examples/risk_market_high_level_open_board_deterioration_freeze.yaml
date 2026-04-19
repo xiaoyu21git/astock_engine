@@ -1,0 +1,74 @@
+version: 1
+namespace: trading.risk.market_high_level_open_board_deterioration
+rules:
+  - id: market-high-level-open-board-deterioration-freeze
+    name: 高位炸板率恶化冻结新开仓
+    stage: market
+    priority: 105
+    description: 高位炸板率快速抬升且回封承接明显塌陷时，切换到强防守冻结态，避免继续参与高位接力。
+    tags: [market, risk, open_board, reseal, freeze]
+    when:
+      op: all
+      conditions:
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: cooling
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: panic
+        - op: ge
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.40
+        - op: lt
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.57
+    then:
+      result: state_switch
+      reason_code: market_high_level_open_board_deterioration_freeze
+      message: 高位炸板率恶化且承接塌陷，冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: high_level_break_freeze
+        allow_actions: [observe, reduce, exit]
+        focus: 回避高位接力，优先处理已有风险
+      state:
+        market_state: frozen
+
+  - id: market-high-level-open-board-deterioration-repair
+    name: 高位承接修复恢复观察态
+    stage: market
+    priority: 72
+    description: 高位炸板率明显回落且回封承接重建后，恢复到谨慎观察态，仅恢复观察和精选候选。
+    tags: [market, risk, open_board, repair]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: repair
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.26
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.64
+    then:
+      result: state_switch
+      reason_code: market_high_level_open_board_deterioration_repair
+      message: 高位承接修复，恢复到谨慎观察态
+      payload:
+        state: cautious
+        gate_level: cautious_watch
+        allow_actions: [observe, candidate_entry]
+        focus: 只恢复观察与少量精选候选
+      state:
+        market_state: cautious

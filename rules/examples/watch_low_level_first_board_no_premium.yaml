@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.low_level_first_board_no_premium
+rules:
+  - id: low-level-first-board-no-premium-block
+    name: 低位首板隔日无溢价阻断规则
+    stage: signal
+    priority: 97
+    description: 低位首板后次日无溢价并失守首板支撑时，取消继续跟踪与接力。
+    tags: [a_share_short_term, watch, low_level_first_board, no_premium]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.low_level_first_board_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_open_premium_ratio
+              right: 0.995
+            - op: lt
+              left:
+                var: candidate.next_day_close_below_first_board_support_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.first_board_premium_rate
+          right: 0.35
+    then:
+      result: block
+      reason_code: low_level_first_board_no_premium_block
+      message: 低位首板隔日无溢价，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: low-level-first-board-continue-watch
+    name: 低位首板继续观察规则
+    stage: signal
+    priority: 60
+    description: 低位首板后次日仍有一定溢价和承接时，仅继续观察。
+    tags: [a_share_short_term, watch, low_level_first_board, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.low_level_first_board_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_open_premium_ratio
+          right: 0.995
+        - op: ge
+          left:
+            var: market.first_board_premium_rate
+          right: 0.35
+    then:
+      result: pass
+      reason_code: low_level_first_board_continue_watch
+      message: 低位首板仍有一定溢价，继续观察
+      payload:
+        state: watchlist

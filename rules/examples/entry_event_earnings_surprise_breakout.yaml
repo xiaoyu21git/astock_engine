@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.entry.event_earnings_surprise_breakout
+rules:
+  - id: event-earnings-surprise-invalidated
+    name: 业绩超预期突破失效规则
+    stage: signal
+    priority: 96
+    description: 业绩催化不强、事件窗口强度不足或突破未成立时，不推进事件驱动候选。
+    tags: [entry, event_driven, earnings, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.earnings_positive_surprise_confirmed
+        - op: lt
+          left:
+            var: candidate.event_window_strength_score
+          right: 0.55
+        - op: lt
+          left:
+            var: candidate.close_above_event_breakout_ratio
+          right: 1.0
+    then:
+      result: block
+      reason_code: event_earnings_surprise_invalidated
+      message: 业绩催化不足或突破未成立，不进入事件驱动候选
+      payload:
+        state: watch_only
+
+  - id: event-earnings-surprise-candidate
+    name: 业绩超预期突破候选规则
+    stage: signal
+    priority: 86
+    description: 业绩明显超预期且事件窗口放量突破时，输出事件驱动候选。
+    tags: [entry, event_driven, earnings, breakout]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.earnings_positive_surprise_confirmed
+        - op: ge
+          left:
+            var: candidate.event_window_strength_score
+          right: 0.62
+        - op: ge
+          left:
+            var: candidate.close_above_event_breakout_ratio
+          right: 1.01
+        - op: ge
+          left:
+            var: market.event_driven_follow_through_rate
+          right: 0.38
+    then:
+      result: candidate_entry
+      reason_code: event_earnings_surprise_candidate
+      message: 标的满足业绩超预期事件驱动候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: event_earnings_surprise
+      score:
+        var: candidate.event_window_strength_score

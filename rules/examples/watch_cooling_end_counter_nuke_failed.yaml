@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.cooling_end_counter_nuke_failed
+rules:
+  - id: cooling-end-counter-nuke-failed-block
+    name: 退潮末端反核失败阻断规则
+    stage: signal
+    priority: 97
+    description: 退潮末端尝试反核但确认失败并重新失守弱势区时，取消继续跟踪与抄底预期。
+    tags: [a_share_short_term, watch, cooling_end, counter_nuke_failed]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_end_confirmed
+        - op: truthy
+          value:
+            var: candidate.counter_nuke_attempted
+        - op: lt
+          left:
+            var: candidate.counter_nuke_confirmation_ratio
+          right: 0.996
+        - op: lt
+          left:
+            var: candidate.bid_acceptance_score
+          right: 55
+    then:
+      result: block
+      reason_code: cooling_end_counter_nuke_failed_block
+      message: 退潮末端反核失败，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: cooling-end-counter-nuke-continue-watch
+    name: 退潮末端反核继续观察规则
+    stage: signal
+    priority: 60
+    description: 退潮末端反核后仍保留一定确认强度时，仅继续观察。
+    tags: [a_share_short_term, watch, cooling_end, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.cooling_end_confirmed
+        - op: truthy
+          value:
+            var: candidate.counter_nuke_attempted
+        - op: ge
+          left:
+            var: candidate.counter_nuke_confirmation_ratio
+          right: 0.996
+        - op: ge
+          left:
+            var: candidate.bid_acceptance_score
+          right: 55
+    then:
+      result: pass
+      reason_code: cooling_end_counter_nuke_continue_watch
+      message: 退潮末端反核仍有一定确认，继续观察
+      payload:
+        state: watchlist

@@ -10,7 +10,12 @@ from .models import RuleStage
 from .operators import ExpressionEvaluator
 
 
-TERMINAL_RESULTS = {RuleResultType.BLOCK, RuleResultType.STATE_SWITCH}
+TERMINAL_RESULTS = {
+    RuleResultType.BLOCK,
+    RuleResultType.EXIT,
+    RuleResultType.HALT,
+    RuleResultType.STATE_SWITCH,
+}
 
 
 class RuleEngine:

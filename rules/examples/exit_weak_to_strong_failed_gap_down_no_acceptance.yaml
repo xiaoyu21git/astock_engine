@@ -1,0 +1,70 @@
+version: 1
+namespace: trading.exit.weak_to_strong_failed_gap_down_no_acceptance
+rules:
+  - id: weak-to-strong-failed-gap-down-no-acceptance-exit
+    name: 弱转强失败后低开无承接退出规则
+    stage: rebalance
+    priority: 94
+    description: 弱转强失败后次日低开且承接不足，并继续失守修复支点时，执行退出。
+    tags: [a_share_short_term, exit, weak_to_strong_fail, gap_down_no_acceptance]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_to_strong_attempted
+        - op: truthy
+          value:
+            var: position.weak_to_strong_failed_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.close_below_reclaim_pivot_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 50
+    then:
+      result: exit
+      reason_code: weak_to_strong_failed_gap_down_no_acceptance_exit
+      message: 弱转强失败后低开无承接，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: weak-to-strong-failed-gap-down-no-acceptance-reduce
+    name: 弱转强失败后低开无承接减仓规则
+    stage: rebalance
+    priority: 81
+    description: 弱转强失败后次日低开承接偏弱但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, weak_to_strong_fail, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_to_strong_attempted
+        - op: truthy
+          value:
+            var: position.weak_to_strong_failed_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.close_below_reclaim_pivot_ratio
+          right: 1.0
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 60
+    then:
+      result: reduce
+      reason_code: weak_to_strong_failed_gap_down_no_acceptance_reduce
+      message: 弱转强失败后低开承接偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

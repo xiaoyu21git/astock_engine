@@ -1,0 +1,45 @@
+version: 1
+namespace: trading.risk.market_reseal_recovery_allow_entry
+rules:
+  - id: market-reseal-recovery-allow-entry
+    name: 回封率修复放行新开仓
+    stage: market
+    priority: 88
+    description: 回封成功率修复、高位开板率回落且题材扩散重新恢复时，放行追涨与新增仓位。
+    tags: [market, gate, reseal_recovery, allow_entry]
+    when:
+      op: all
+      conditions:
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: repair
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: warm
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.26
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.66
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.50
+    then:
+      result: state_switch
+      reason_code: market_reseal_recovery_allow_entry
+      message: 回封率修复确认，放行精选新增仓位
+      payload:
+        state: selective_active
+        gate_level: reseal_recovery_allow
+        allow_actions: [observe, candidate_entry, open]
+        focus: 优先放行回封、突破和强承接类候选
+      state:
+        market_state: selective_active

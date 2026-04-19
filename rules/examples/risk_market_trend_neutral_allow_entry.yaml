@@ -1,0 +1,45 @@
+version: 1
+namespace: trading.risk.market_trend_neutral_allow_entry
+rules:
+  - id: market-trend-neutral-allow-entry
+    name: 趋势中性环境放行规则
+    stage: market
+    priority: 82
+    description: 市场未出现明显系统性走弱且回撤压力仍可承受时，允许日线趋势策略继续筛选新增仓位。
+    tags: [market, gate, trend, neutral_market, allow_entry]
+    when:
+      op: all
+      conditions:
+        - op: le
+          left:
+            var: market.drawdown_from_recent_high
+          right: 0.30
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.regime_state
+              right: bull
+            - op: eq
+              left:
+                var: market.regime_state
+              right: sideways
+            - op: ge
+              left:
+                var: market.breadth_above_ma60_ratio
+              right: 0.12
+            - op: ge
+              left:
+                var: market.trend_strength_score
+              right: 0.02
+    then:
+      result: state_switch
+      reason_code: market_trend_neutral_allow_entry
+      message: 市场仍处于可承受的趋势环境，允许继续筛选日线趋势新增仓位
+      payload:
+        state: selective_active
+        gate_level: trend_neutral_allow
+        allow_actions: [observe, candidate_entry, open]
+        focus: 优先放行回踩确认、平台突破和中继趋势类候选
+      state:
+        market_state: selective_active

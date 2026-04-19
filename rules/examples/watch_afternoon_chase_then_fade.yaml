@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.afternoon_chase_then_fade
+rules:
+  - id: afternoon-chase-then-fade-block
+    name: 午后抢筹回落阻断规则
+    stage: signal
+    priority: 97
+    description: 午后抢筹后快速回落并失守午后攻击位时，取消继续跟踪。
+    tags: [a_share_short_term, watch, afternoon_chase, fade]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.afternoon_chase_confirmed
+            - op: ge
+              left:
+                var: candidate.afternoon_fade_drawdown_ratio
+              right: 0.028
+            - op: lt
+              left:
+                var: candidate.close_below_afternoon_attack_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.afternoon_follow_through_rate
+          right: 0.33
+    then:
+      result: block
+      reason_code: afternoon_chase_then_fade_block
+      message: 午后抢筹未能稳住结构，取消追踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: afternoon-chase-continue-watch
+    name: 午后抢筹继续观察规则
+    stage: signal
+    priority: 61
+    description: 午后抢筹仍具一定延续性时继续观察，但不直接追击。
+    tags: [a_share_short_term, watch, afternoon_chase, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.afternoon_chase_confirmed
+        - op: lt
+          left:
+            var: candidate.afternoon_fade_drawdown_ratio
+          right: 0.028
+        - op: ge
+          left:
+            var: market.afternoon_follow_through_rate
+          right: 0.33
+    then:
+      result: pass
+      reason_code: afternoon_chase_continue_watch
+      message: 午后抢筹仍可观察
+      payload:
+        state: watchlist

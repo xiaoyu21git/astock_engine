@@ -1,0 +1,60 @@
+version: 1
+namespace: trading.watch.high_level_blowup_next_day_thin_volume_drift
+rules:
+  - id: high-level-blowup-next-day-thin-volume-drift-block
+    name: 高位炸板次日缩量阴跌阻断规则
+    stage: signal
+    priority: 97
+    description: 高位炸板后次日缩量阴跌并失守炸板支撑时，取消继续跟踪与低吸预期。
+    tags: [a_share_short_term, watch, high_level_blowup, thin_volume_drift]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.high_level_blowup_confirmed
+        - op: truthy
+          value:
+            var: candidate.next_day_thin_volume_confirmed
+        - op: lt
+          left:
+            var: candidate.close_below_blowup_support_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: market.high_level_blowup_repair_rate
+          right: 0.35
+    then:
+      result: block
+      reason_code: high_level_blowup_next_day_thin_volume_drift_block
+      message: 高位炸板次日缩量阴跌，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: high-level-blowup-next-day-thin-volume-drift-continue-watch
+    name: 高位炸板次日继续观察规则
+    stage: signal
+    priority: 60
+    description: 高位炸板后次日若仍保留一定修复能力，仅继续观察。
+    tags: [a_share_short_term, watch, high_level_blowup, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.high_level_blowup_confirmed
+        - op: ge
+          left:
+            var: candidate.close_below_blowup_support_ratio
+          right: 0.998
+        - op: ge
+          left:
+            var: market.high_level_blowup_repair_rate
+          right: 0.35
+    then:
+      result: pass
+      reason_code: high_level_blowup_next_day_thin_volume_drift_continue_watch
+      message: 高位炸板次日仍有修复，继续观察
+      payload:
+        state: watchlist

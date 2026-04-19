@@ -1,0 +1,61 @@
+version: 1
+namespace: trading.watch.sector_divergence_leader_follower_split
+rules:
+  - id: sector-divergence-leader-follower-split-block
+    name: 板块分歧时核心与跟风分化阻断规则
+    stage: signal
+    priority: 97
+    description: 板块分歧时核心和跟风强度明显拉开且跟风失守关键位时，取消继续跟踪弱侧个股。
+    tags: [a_share_short_term, watch, sector_divergence, leader_follower]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.sector_divergence_confirmed
+        - op: ge
+          left:
+            var: candidate.leader_follower_divergence_score
+          right: 68
+        - op: lt
+          left:
+            var: candidate.follow_strength_vs_leader_ratio
+          right: 0.72
+        - op: lt
+          left:
+            var: candidate.close_below_divergence_reference_ratio
+          right: 0.998
+    then:
+      result: block
+      reason_code: sector_divergence_leader_follower_split_block
+      message: 板块分歧时个股掉到跟风弱侧，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: sector-divergence-leader-follower-continue-watch
+    name: 板块分歧继续观察规则
+    stage: signal
+    priority: 60
+    description: 板块分歧中个股仍能保持相对强度时，仅继续观察。
+    tags: [a_share_short_term, watch, sector_divergence, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.sector_divergence_confirmed
+        - op: lt
+          left:
+            var: candidate.leader_follower_divergence_score
+          right: 68
+        - op: ge
+          left:
+            var: candidate.follow_strength_vs_leader_ratio
+          right: 0.72
+    then:
+      result: pass
+      reason_code: sector_divergence_leader_follower_continue_watch
+      message: 板块分歧中个股仍保留相对强度，继续观察
+      payload:
+        state: watchlist

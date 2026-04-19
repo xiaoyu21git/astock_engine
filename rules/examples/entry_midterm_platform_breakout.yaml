@@ -1,0 +1,71 @@
+version: 1
+namespace: trading.entry.midterm_platform_breakout
+rules:
+  - id: midterm-platform-breakout-invalidated
+    name: 中期平台突破失效规则
+    stage: signal
+    priority: 96
+    description: 平台未被有效突破、量能不足或中期趋势走平走弱时，不推进中线突破候选。
+    tags: [entry, mid_term, platform_breakout, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.platform_breakout_confirmed
+        - op: lt
+          left:
+            var: candidate.close_above_platform_ratio
+          right: 1.0
+        - op: lt
+          left:
+            var: candidate.volume_ratio_to_20d_avg
+          right: 1.15
+        - op: lt
+          left:
+            var: candidate.midterm_trend_slope
+          right: 0.0
+    then:
+      result: block
+      reason_code: midterm_platform_breakout_invalidated
+      message: 中期平台突破条件不足，不进入突破候选
+      payload:
+        state: watch_only
+
+  - id: midterm-platform-breakout-candidate
+    name: 中期平台突破候选规则
+    stage: signal
+    priority: 84
+    description: 中期平台放量突破并保持趋势斜率向上时，输出中线突破候选。
+    tags: [entry, mid_term, platform_breakout]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.platform_breakout_confirmed
+        - op: ge
+          left:
+            var: candidate.close_above_platform_ratio
+          right: 1.01
+        - op: ge
+          left:
+            var: candidate.volume_ratio_to_20d_avg
+          right: 1.20
+        - op: ge
+          left:
+            var: candidate.midterm_trend_slope
+          right: 0.0
+        - op: ge
+          left:
+            var: market.midterm_breakout_success_rate
+          right: 0.42
+    then:
+      result: candidate_entry
+      reason_code: midterm_platform_breakout_candidate
+      message: 标的满足中期平台突破候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: midterm_platform_breakout
+      score:
+        var: candidate.close_above_platform_ratio

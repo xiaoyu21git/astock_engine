@@ -1,0 +1,71 @@
+version: 1
+namespace: trading.entry.overtake_rotation
+rules:
+  - id: overtake-rotation-invalidated
+    name: 卡位上位失效规则
+    stage: signal
+    priority: 97
+    description: 情绪退潮或卡位信号未确认时，不继续推进卡位上位候选。
+    tags: [a_share_short_term, entry, overtake, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: cooling
+        - op: lt
+          left:
+            var: candidate.relative_core_strength_score
+          right: 70
+        - op: gt
+          left:
+            var: candidate.relative_core_rank
+          right: 2
+    then:
+      result: block
+      reason_code: overtake_rotation_invalidated
+      message: 卡位强度不足或情绪环境转弱
+      payload:
+        state: abandoned
+
+  - id: overtake-rotation-candidate
+    name: 卡位上位候选规则
+    stage: signal
+    priority: 91
+    description: 标的完成卡位确认并进入题材前排时，输出候选入场。
+    tags: [a_share_short_term, entry, overtake, leader_rotation]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.overtake_signal_confirmed
+        - op: le
+          left:
+            var: candidate.relative_core_rank
+          right: 2
+        - op: ge
+          left:
+            var: candidate.relative_core_strength_score
+          right: 82
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: warm
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: hot
+    then:
+      result: candidate_entry
+      reason_code: overtake_rotation_candidate
+      message: 标的满足卡位上位候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: overtake_rotation
+        tag: new_core_candidate
+      score:
+        var: candidate.relative_core_strength_score

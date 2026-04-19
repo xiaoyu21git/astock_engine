@@ -1,0 +1,66 @@
+version: 1
+namespace: trading.exit.acceleration_volume_stall
+rules:
+  - id: acceleration-volume-stall-exit
+    name: 加速后放量滞涨退出规则
+    stage: rebalance
+    priority: 94
+    description: 加速后放量但价格推进停滞且承接走弱时，直接退出。
+    tags: [a_share_short_term, exit, acceleration, volume_stall]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.acceleration_phase_confirmed
+        - op: ge
+          left:
+            var: position.volume_expansion_ratio
+          right: 1.8
+        - op: lt
+          left:
+            var: position.price_progress_stall_ratio
+          right: 0.995
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 54
+    then:
+      result: exit
+      reason_code: acceleration_volume_stall_exit
+      message: 加速后放量滞涨，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: acceleration-volume-stall-reduce
+    name: 加速后放量滞涨减仓规则
+    stage: rebalance
+    priority: 81
+    description: 加速后滞涨但承接尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, acceleration, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.acceleration_phase_confirmed
+        - op: ge
+          left:
+            var: position.volume_expansion_ratio
+          right: 1.8
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 54
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 66
+    then:
+      result: reduce
+      reason_code: acceleration_volume_stall_reduce
+      message: 加速后放量滞涨偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

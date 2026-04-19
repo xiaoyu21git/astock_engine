@@ -1,0 +1,67 @@
+version: 1
+namespace: trading.entry.emotion_reflow_repair
+rules:
+  - id: emotion-reflow-repair-invalidated
+    name: 情绪修复回流失效规则
+    stage: signal
+    priority: 97
+    description: 情绪修复未确认或核心题材回流不足时，不推进修复回流候选。
+    tags: [a_share_short_term, entry, emotion_repair, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: market.repair_reflow_confirmed
+        - op: lt
+          left:
+            var: market.core_theme_return_rate
+          right: 0.38
+        - op: gt
+          left:
+            var: candidate.core_theme_reflow_rank
+          right: 5
+    then:
+      result: block
+      reason_code: emotion_reflow_repair_invalidated
+      message: 情绪修复回流前提不足，不进入候选
+      payload:
+        state: watch_only
+
+  - id: emotion-reflow-repair-candidate
+    name: 情绪修复回流候选规则
+    stage: signal
+    priority: 88
+    description: 市场进入修复回流且标的位于核心回流前排时，输出候选入场。
+    tags: [a_share_short_term, entry, emotion_repair, reflow]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.repair_reflow_confirmed
+        - op: ge
+          left:
+            var: market.core_theme_return_rate
+          right: 0.45
+        - op: le
+          left:
+            var: candidate.core_theme_reflow_rank
+          right: 3
+        - op: ge
+          left:
+            var: candidate.early_repair_strength_score
+          right: 75
+        - op: ge
+          left:
+            var: candidate.breakout_after_repair_ratio
+          right: 1.0
+    then:
+      result: candidate_entry
+      reason_code: emotion_reflow_repair_candidate
+      message: 标的满足情绪修复回流候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: emotion_reflow_repair
+      score:
+        var: candidate.early_repair_strength_score

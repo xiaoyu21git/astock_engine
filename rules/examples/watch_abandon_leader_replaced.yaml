@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.watch.leader_replaced
+rules:
+  - id: leader-replaced-abandon-watch
+    name: 龙头被替代后放弃关注
+    stage: eligibility
+    priority: 99
+    description: 原有关注标的若已被新龙头替代、排名滑落或板块退潮，则退出关注池。
+    tags: [a_share_short_term, watch, leader, abandon]
+    when:
+      op: any
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.replaced_by_new_leader
+        - op: gt
+          left:
+            var: candidate.leader_rank_in_theme
+          right: 3
+        - op: eq
+          left:
+            var: theme.emotion_cycle
+          right: cooling
+        - op: ge
+          left:
+            var: watch.elapsed_minutes
+          right: 180
+    then:
+      result: block
+      reason_code: leader_replaced_abandon_watch
+      message: 龙头地位丧失或关注超时，放弃继续关注
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: leader-watch-continue
+    name: 龙头观察继续保留
+    stage: eligibility
+    priority: 60
+    description: 龙头地位和题材热度仍然有效时，继续保留关注。
+    tags: [a_share_short_term, watch, leader, continue]
+    when:
+      op: all
+      conditions:
+        - op: le
+          left:
+            var: candidate.leader_rank_in_theme
+          right: 2
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: theme.emotion_cycle
+              right: warm
+            - op: eq
+              left:
+                var: theme.emotion_cycle
+              right: hot
+    then:
+      result: pass
+      reason_code: leader_watch_continue
+      message: 标的仍属于题材核心观察对象
+      payload:
+        state: watchlist

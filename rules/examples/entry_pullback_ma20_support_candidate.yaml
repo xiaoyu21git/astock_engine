@@ -1,0 +1,37 @@
+version: 1
+namespace: trading.entry.pullback_ma20_support_candidate
+rules:
+  - id: pullback-ma20-candidate-only
+    name: 回踩20日线候选规则
+    stage: signal
+    priority: 89
+    description: 上升趋势中回踩 20 日线并重新企稳时，输出趋势延续候选。
+    tags: [a_share_short_term, entry, pullback, ma20, candidate_only]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.pullback_ma20_support_confirmed
+        - op: ge
+          left:
+            var: candidate.close_to_ma20_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: candidate.ma20_trend_slope
+          right: 0.0
+        - op: ge
+          left:
+            var: market.trend_pullback_rebound_rate
+          right: 0.35
+    then:
+      result: candidate_entry
+      reason_code: pullback_ma20_candidate
+      message: 标的满足回踩20日线趋势延续候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: pullback_ma20
+        support_line: ma20
+      score:
+        var: candidate.close_to_ma20_ratio

@@ -1,0 +1,65 @@
+version: 1
+namespace: trading.exit.board_fade_tail_breakdown
+rules:
+  - id: board-fade-tail-breakdown-exit
+    name: 炸板回落尾盘失守退出规则
+    stage: rebalance
+    priority: 94
+    description: 炸板后持续回落并在尾盘失守关键承接位时，执行退出。
+    tags: [a_share_short_term, exit, board_break, tail_breakdown]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_break_after_limit_attempted
+        - op: truthy
+          value:
+            var: position.tail_breakdown_confirmed
+        - op: lt
+          left:
+            var: position.close_below_board_pivot_ratio
+          right: 0.997
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+    then:
+      result: exit
+      reason_code: board_fade_tail_breakdown_exit
+      message: 炸板回落尾盘失守，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: board-fade-tail-breakdown-reduce
+    name: 炸板回落尾盘失守减仓规则
+    stage: rebalance
+    priority: 81
+    description: 炸板后回落但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, board_break, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_break_after_limit_attempted
+        - op: lt
+          left:
+            var: position.close_below_board_pivot_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 64
+    then:
+      result: reduce
+      reason_code: board_fade_tail_breakdown_reduce
+      message: 炸板回落转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

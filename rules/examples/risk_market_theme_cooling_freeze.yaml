@@ -1,0 +1,78 @@
+version: 1
+namespace: trading.risk.market_theme_cooling
+rules:
+  - id: market-theme-cooling-freeze
+    name: 题材退潮冻结新开仓
+    stage: market
+    priority: 101
+    description: 主线题材宽度明显收缩且回封确认同步转弱时，切换到冻结态，避免继续追逐退潮主线。
+    tags: [market, risk, theme, breadth, freeze]
+    when:
+      op: all
+      conditions:
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: cooling
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: panic
+        - op: lt
+          left:
+            var: market.theme_breadth
+          right: 0.35
+        - op: lt
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.58
+    then:
+      result: state_switch
+      reason_code: market_theme_cooling_freeze
+      message: 主线题材退潮扩散，冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: theme_cooling_freeze
+        allow_actions: [observe, reduce, exit]
+        focus: 回避退潮主线，仅保留观察和风险回收
+      state:
+        market_state: frozen
+
+  - id: market-theme-cooling-repair
+    name: 题材回流恢复观察态
+    stage: market
+    priority: 66
+    description: 主线题材重新扩散、回封确认恢复且高位承接回稳后，恢复到谨慎观察态。
+    tags: [market, risk, theme, breadth, repair]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: repair
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.58
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.60
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.28
+    then:
+      result: state_switch
+      reason_code: market_theme_cooling_repair
+      message: 题材回流扩散，恢复到谨慎观察态
+      payload:
+        state: cautious
+        gate_level: cautious_watch
+        allow_actions: [observe, candidate_entry]
+        focus: 只恢复题材观察和少量候选试错
+      state:
+        market_state: cautious

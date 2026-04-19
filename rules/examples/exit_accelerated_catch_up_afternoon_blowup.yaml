@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.accelerated_catch_up_afternoon_blowup
+rules:
+  - id: accelerated-catch-up-afternoon-blowup-exit
+    name: 加速补涨午后炸裂退出规则
+    stage: rebalance
+    priority: 94
+    description: 加速补涨后午后炸裂并失守关键支点时，执行退出。
+    tags: [a_share_short_term, exit, accelerated_catch_up, afternoon_blowup]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.accelerated_catch_up_confirmed
+        - op: truthy
+          value:
+            var: position.afternoon_blowup_confirmed
+        - op: lt
+          left:
+            var: position.close_below_catch_up_pivot_ratio
+          right: 0.997
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+    then:
+      result: exit
+      reason_code: accelerated_catch_up_afternoon_blowup_exit
+      message: 加速补涨午后炸裂，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: accelerated-catch-up-afternoon-blowup-reduce
+    name: 加速补涨午后炸裂减仓规则
+    stage: rebalance
+    priority: 81
+    description: 加速补涨后午后炸裂开始形成但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, accelerated_catch_up, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.accelerated_catch_up_confirmed
+        - op: truthy
+          value:
+            var: position.afternoon_blowup_confirmed
+        - op: lt
+          left:
+            var: position.close_below_catch_up_pivot_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 64
+    then:
+      result: reduce
+      reason_code: accelerated_catch_up_afternoon_blowup_reduce
+      message: 加速补涨午后炸裂转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

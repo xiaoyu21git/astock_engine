@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.afternoon_reflow_next_day_below_expectation
+rules:
+  - id: afternoon-reflow-next-day-below-expectation-block
+    name: 午后回流次日低于预期阻断规则
+    stage: signal
+    priority: 97
+    description: 午后回流后次日未形成应有延续并失守回流支点时，取消继续跟踪。
+    tags: [a_share_short_term, watch, afternoon_reflow, below_expectation]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.afternoon_reflow_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_open_below_reflow_expectation_ratio
+              right: 0.995
+            - op: lt
+              left:
+                var: candidate.next_day_close_below_reflow_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.afternoon_reflow_follow_through_rate
+          right: 0.37
+    then:
+      result: block
+      reason_code: afternoon_reflow_next_day_below_expectation_block
+      message: 午后回流次日低于预期，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: afternoon-reflow-next-day-continue-watch
+    name: 午后回流次日继续观察规则
+    stage: signal
+    priority: 60
+    description: 午后回流后次日仍保留一定延续强度时，仅继续观察。
+    tags: [a_share_short_term, watch, afternoon_reflow, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.afternoon_reflow_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_open_below_reflow_expectation_ratio
+          right: 0.995
+        - op: ge
+          left:
+            var: market.afternoon_reflow_follow_through_rate
+          right: 0.37
+    then:
+      result: pass
+      reason_code: afternoon_reflow_next_day_continue_watch
+      message: 午后回流次日仍可继续观察
+      payload:
+        state: watchlist

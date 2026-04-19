@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.engulfing_first_down_day_confirmed
+rules:
+  - id: engulfing-first-down-day-exit
+    name: 反包首阴确认退出规则
+    stage: rebalance
+    priority: 95
+    description: 反包后首阴确认且失守承接位时，直接退出。
+    tags: [a_share_short_term, exit, engulfing, first_down_day]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_yesterday_confirmed
+        - op: truthy
+          value:
+            var: position.first_down_day_confirmed
+        - op: lt
+          left:
+            var: position.close_below_engulfing_support_ratio
+          right: 0.996
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: exit
+      reason_code: engulfing_first_down_day_exit
+      message: 反包首阴确认，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: engulfing-first-down-day-reduce
+    name: 反包首阴确认减仓规则
+    stage: rebalance
+    priority: 82
+    description: 反包后出现首阴但抛压尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, engulfing, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_yesterday_confirmed
+        - op: truthy
+          value:
+            var: position.first_down_day_confirmed
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 60
+        - op: lt
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: reduce
+      reason_code: engulfing_first_down_day_reduce
+      message: 反包首阴偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

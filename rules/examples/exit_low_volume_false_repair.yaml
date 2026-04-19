@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.low_volume_false_repair
+rules:
+  - id: low-volume-false-repair-exit
+    name: 缩量假修复退出规则
+    stage: rebalance
+    priority: 94
+    description: 缩量修复确认失败并再次跌回修复突破位下方时，直接退出。
+    tags: [a_share_short_term, exit, low_volume, false_repair]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.low_volume_repair_attempted
+        - op: truthy
+          value:
+            var: position.repair_confirmation_failed
+        - op: lt
+          left:
+            var: position.repair_breakout_ratio
+          right: 0.995
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.9
+    then:
+      result: exit
+      reason_code: low_volume_false_repair_exit
+      message: 缩量假修复成立，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: low-volume-false-repair-reduce
+    name: 缩量假修复减仓规则
+    stage: rebalance
+    priority: 80
+    description: 缩量修复质量不足但尚未完全破坏时，先减仓处理。
+    tags: [a_share_short_term, exit, low_volume, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.low_volume_repair_attempted
+        - op: truthy
+          value:
+            var: position.repair_confirmation_failed
+        - op: ge
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.9
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 1.02
+    then:
+      result: reduce
+      reason_code: low_volume_false_repair_reduce
+      message: 缩量修复偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.33
+        state: defense_mode

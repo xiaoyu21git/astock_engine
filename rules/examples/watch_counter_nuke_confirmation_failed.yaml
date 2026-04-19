@@ -1,0 +1,67 @@
+version: 1
+namespace: trading.watch.counter_nuke_confirmation_failed
+rules:
+  - id: counter-nuke-confirmation-failed-block
+    name: 反核确认失败阻断规则
+    stage: signal
+    priority: 98
+    description: 反核尝试后未能形成有效确认并重新回到弱势区间时，取消跟踪。
+    tags: [a_share_short_term, watch, counter_nuke, failed_confirmation]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.counter_nuke_attempted
+            - op: lt
+              left:
+                var: candidate.counter_nuke_confirmation_ratio
+              right: 0.998
+            - op: lt
+              left:
+                var: candidate.bid_acceptance_score
+              right: 55
+        - op: lt
+          left:
+            var: market.counter_nuke_success_rate
+          right: 0.3
+    then:
+      result: block
+      reason_code: counter_nuke_confirmation_failed_block
+      message: 反核确认失败，停止跟踪与抄底尝试
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: counter-nuke-continue-watch
+    name: 反核继续观察规则
+    stage: signal
+    priority: 64
+    description: 反核后承接尚可时继续观察，但不直接确认入场。
+    tags: [a_share_short_term, watch, counter_nuke, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.counter_nuke_attempted
+        - op: ge
+          left:
+            var: candidate.counter_nuke_confirmation_ratio
+          right: 0.998
+        - op: ge
+          left:
+            var: candidate.bid_acceptance_score
+          right: 55
+        - op: ge
+          left:
+            var: market.counter_nuke_success_rate
+          right: 0.3
+    then:
+      result: pass
+      reason_code: counter_nuke_continue_watch
+      message: 反核仍可观察
+      payload:
+        state: watchlist

@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.tail_repair_no_follow_through
+rules:
+  - id: tail-repair-no-follow-through-block
+    name: 尾盘抢修无延续阻断规则
+    stage: signal
+    priority: 97
+    description: 尾盘抢修后次日没有形成延续并重新失守修复支点时，取消继续跟踪。
+    tags: [a_share_short_term, watch, tail_repair, no_follow_through]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.tail_repair_attempt_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_repair_follow_ratio
+              right: 0.82
+            - op: lt
+              left:
+                var: candidate.next_day_close_below_repair_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.tail_repair_success_rate
+          right: 0.36
+    then:
+      result: block
+      reason_code: tail_repair_no_follow_through_block
+      message: 尾盘抢修无延续，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: tail-repair-no-follow-through-continue-watch
+    name: 尾盘抢修继续观察规则
+    stage: signal
+    priority: 60
+    description: 尾盘抢修后次日仍保留一定跟随与修复空间时，仅继续观察。
+    tags: [a_share_short_term, watch, tail_repair, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.tail_repair_attempt_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_repair_follow_ratio
+          right: 0.82
+        - op: ge
+          left:
+            var: market.tail_repair_success_rate
+          right: 0.36
+    then:
+      result: pass
+      reason_code: tail_repair_continue_watch
+      message: 尾盘抢修仍有一定延续空间，继续观察
+      payload:
+        state: watchlist

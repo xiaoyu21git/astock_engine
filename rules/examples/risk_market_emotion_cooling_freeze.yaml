@@ -1,0 +1,84 @@
+version: 1
+namespace: trading.risk.market_emotion_cooling
+rules:
+  - id: market-emotion-cooling-freeze
+    name: 情绪退潮冻结新开仓
+    stage: market
+    priority: 100
+    description: 市场情绪从修复转向退潮并伴随高位承接、回封率或题材宽度同步恶化时，切换到防守冻结态。
+    tags: [market, risk, emotion_cycle, freeze]
+    when:
+      op: all
+      conditions:
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: cooling
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: panic
+        - op: any
+          conditions:
+            - op: ge
+              left:
+                var: market.high_level_open_board_rate
+              right: 0.33
+            - op: lt
+              left:
+                var: market.limit_up_reseal_rate
+              right: 0.58
+            - op: lt
+              left:
+                var: market.theme_breadth
+              right: 0.42
+    then:
+      result: state_switch
+      reason_code: market_emotion_cooling_freeze
+      message: 市场情绪退潮扩散，切换防守态并冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: market_defense_freeze
+        allow_actions: [observe, reduce, exit]
+        focus: 优先观察、减仓与风险回收
+      state:
+        market_state: frozen
+
+  - id: market-emotion-repair-unfreeze
+    name: 情绪修复后恢复观察态
+    stage: market
+    priority: 70
+    description: 情绪从退潮切回修复，同时高位承接和题材宽度回稳后，恢复到谨慎观察态，而不是直接进攻。
+    tags: [market, risk, emotion_cycle, repair]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: repair
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.27
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.60
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.50
+    then:
+      result: state_switch
+      reason_code: market_emotion_repair_unfreeze
+      message: 市场情绪修复确认，恢复到谨慎观察态
+      payload:
+        state: cautious
+        gate_level: cautious_watch
+        allow_actions: [observe, candidate_entry]
+        focus: 仅保留观察与少量候选，不直接全面进攻
+      state:
+        market_state: cautious

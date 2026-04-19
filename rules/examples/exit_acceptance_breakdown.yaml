@@ -1,0 +1,51 @@
+version: 1
+namespace: trading.exit.acceptance_breakdown
+rules:
+  - id: acceptance-breakdown-full-exit
+    name: 承接走弱彻底退出规则
+    stage: rebalance
+    priority: 93
+    description: 承接显著恶化且趋势破坏确认时，直接退出。
+    tags: [a_share_short_term, exit, acceptance, breakdown]
+    when:
+      op: all
+      conditions:
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 35
+        - op: truthy
+          value:
+            var: position.trend_damage_confirmed
+    then:
+      result: exit
+      reason_code: acceptance_breakdown_full_exit
+      message: 承接崩塌且趋势损坏，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: acceptance-breakdown-reduce
+    name: 承接走弱减仓规则
+    stage: rebalance
+    priority: 84
+    description: 承接走弱但趋势尚未完全破坏时，先收缩仓位。
+    tags: [a_share_short_term, exit, acceptance, reduce]
+    when:
+      op: all
+      conditions:
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 55
+        - op: ge
+          left:
+            var: position.intraday_pullback_percent
+          right: 2.5
+    then:
+      result: reduce
+      reason_code: acceptance_breakdown_reduce
+      message: 承接明显转弱，先减仓处理
+      payload:
+        reduce_ratio: 0.33
+        state: defense_mode

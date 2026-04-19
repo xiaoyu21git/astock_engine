@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.high_level_board_break_afternoon_second_kill
+rules:
+  - id: high-level-board-break-afternoon-second-kill-exit
+    name: 高位炸板后午后再杀退出规则
+    stage: rebalance
+    priority: 94
+    description: 高位炸板后午后再次集中杀跌并失守关键支点时，执行退出。
+    tags: [a_share_short_term, exit, high_level_board_break, afternoon_second_kill]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.high_level_board_break_confirmed
+        - op: truthy
+          value:
+            var: position.afternoon_second_kill_confirmed
+        - op: lt
+          left:
+            var: position.close_below_afternoon_second_kill_pivot_ratio
+          right: 0.997
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 74
+    then:
+      result: exit
+      reason_code: high_level_board_break_afternoon_second_kill_exit
+      message: 高位炸板后午后再杀，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: high-level-board-break-afternoon-second-kill-reduce
+    name: 高位炸板后午后再杀减仓规则
+    stage: rebalance
+    priority: 81
+    description: 高位炸板后午后再杀开始形成但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, high_level_board_break, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.high_level_board_break_confirmed
+        - op: truthy
+          value:
+            var: position.afternoon_second_kill_confirmed
+        - op: lt
+          left:
+            var: position.close_below_afternoon_second_kill_pivot_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 62
+        - op: lt
+          left:
+            var: position.selling_pressure_score
+          right: 74
+    then:
+      result: reduce
+      reason_code: high_level_board_break_afternoon_second_kill_reduce
+      message: 高位炸板后午后再杀转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

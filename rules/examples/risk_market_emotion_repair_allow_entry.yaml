@@ -1,0 +1,38 @@
+version: 1
+namespace: trading.risk.market_emotion_repair_allow_entry
+rules:
+  - id: market-emotion-repair-allow-entry
+    name: 情绪修复放行新开仓
+    stage: market
+    priority: 92
+    description: 市场完成情绪修复且高位承接、回封率、题材宽度同步回暖时，允许恢复新增仓位。
+    tags: [market, gate, emotion_repair, allow_entry]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.emotion_repair_confirmed
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.24
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.62
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.55
+    then:
+      result: state_switch
+      reason_code: market_emotion_repair_allow_entry
+      message: 市场情绪修复确认，允许恢复新增仓位
+      payload:
+        state: active
+        gate_level: allow_new_entry
+        allow_actions: [observe, candidate_entry, open]
+        focus: 优先恢复新增仓位和趋势延续类候选
+      state:
+        market_state: active

@@ -1,0 +1,56 @@
+version: 1
+namespace: trading.watch.repair_market_core_secondary_switch
+rules:
+  - id: repair-market-core-secondary-switch-block
+    name: 修复行情里核心与次核心切换阻断规则
+    stage: signal
+    priority: 97
+    description: 修复行情中次核心完成切换而旧核心失守参考位时，取消继续跟踪旧核心。
+    tags: [a_share_short_term, watch, repair_market, core_secondary_switch]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.repair_market_confirmed
+        - op: truthy
+          value:
+            var: candidate.secondary_core_switch_confirmed
+        - op: ge
+          left:
+            var: candidate.relative_core_rank
+          right: 3
+        - op: lt
+          left:
+            var: candidate.close_below_core_switch_reference_ratio
+          right: 0.998
+    then:
+      result: block
+      reason_code: repair_market_core_secondary_switch_block
+      message: 修复行情里核心切换完成，旧核心已掉队，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: repair-market-core-secondary-switch-continue-watch
+    name: 修复行情核心继续观察规则
+    stage: signal
+    priority: 60
+    description: 修复行情中个股仍处于核心前列时，仅继续观察。
+    tags: [a_share_short_term, watch, repair_market, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.repair_market_confirmed
+        - op: lt
+          left:
+            var: candidate.relative_core_rank
+          right: 3
+    then:
+      result: pass
+      reason_code: repair_market_core_secondary_continue_watch
+      message: 修复行情中个股仍在核心前列，继续观察
+      payload:
+        state: watchlist

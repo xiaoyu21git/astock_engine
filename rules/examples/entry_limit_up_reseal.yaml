@@ -1,0 +1,72 @@
+version: 1
+namespace: trading.entry.limit_up_reseal
+rules:
+  - id: limit-up-reseal-candidate
+    name: 炸板回封候选规则
+    stage: signal
+    priority: 92
+    description: 涨停炸板后出现承接并重新回封，适合作为回封打板候选。
+    tags: [a_share_short_term, entry, reseal, limit_up]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.hit_limit_up_once
+        - op: truthy
+          value:
+            var: candidate.open_board_happened
+        - op: ge
+          left:
+            var: candidate.reseal_count
+          right: 1
+        - op: ge
+          left:
+            var: candidate.seal_strength_score
+          right: 70
+        - op: ge
+          left:
+            var: candidate.acceptance_strength_score
+          right: 65
+        - op: lt
+          left:
+            var: candidate.open_board_duration_seconds
+          right: 900
+    then:
+      result: candidate_entry
+      reason_code: limit_up_reseal_candidate
+      message: 标的满足炸板回封候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: reseal_board
+        order_hint: board_hit
+      score:
+        var: candidate.seal_strength_score
+
+  - id: limit-up-reseal-failed
+    name: 炸板回封失败规则
+    stage: signal
+    priority: 96
+    description: 回封失败或抛压过重时，禁止继续追板。
+    tags: [a_share_short_term, signal, reseal, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: ge
+          left:
+            var: candidate.reseal_fail_count
+          right: 2
+        - op: lt
+          left:
+            var: candidate.acceptance_strength_score
+          right: 45
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: panic
+    then:
+      result: block
+      reason_code: limit_up_reseal_failed
+      message: 回封质量不足，禁止追板
+      payload:
+        state: abandoned

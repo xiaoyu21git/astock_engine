@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.one_word_turnover_acceptance_decay
+rules:
+  - id: one-word-turnover-acceptance-decay-block
+    name: 一字换手后承接衰减阻断规则
+    stage: signal
+    priority: 97
+    description: 一字换手后承接迅速衰减并失守换手支点时，取消继续跟踪与接力。
+    tags: [a_share_short_term, watch, one_word_turnover, acceptance_decay]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.one_word_turnover_open_confirmed
+            - op: ge
+              left:
+                var: candidate.turnover_acceptance_decay_score
+              right: 70
+            - op: lt
+              left:
+                var: candidate.close_below_turnover_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.one_word_turnover_success_rate
+          right: 0.31
+    then:
+      result: block
+      reason_code: one_word_turnover_acceptance_decay_block
+      message: 一字换手后承接衰减，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: one-word-turnover-continue-watch
+    name: 一字换手继续观察规则
+    stage: signal
+    priority: 60
+    description: 一字换手后承接尚未明显衰减且环境仍可接受时，仅继续观察。
+    tags: [a_share_short_term, watch, one_word_turnover, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.one_word_turnover_open_confirmed
+        - op: lt
+          left:
+            var: candidate.turnover_acceptance_decay_score
+          right: 70
+        - op: ge
+          left:
+            var: market.one_word_turnover_success_rate
+          right: 0.31
+    then:
+      result: pass
+      reason_code: one_word_turnover_continue_watch
+      message: 一字换手后仍可继续观察
+      payload:
+        state: watchlist

@@ -1,0 +1,78 @@
+version: 1
+namespace: trading.risk.market_reseal_rate_drop
+rules:
+  - id: market-reseal-rate-drop-freeze
+    name: 回封率下滑冻结新开仓
+    stage: market
+    priority: 102
+    description: 回封成功率快速下滑、接力确认不足且高位分歧抬升时，切换到冻结态，停止追涨打板。
+    tags: [market, risk, reseal, freeze]
+    when:
+      op: all
+      conditions:
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: cooling
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: panic
+        - op: lt
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.46
+        - op: ge
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.24
+    then:
+      result: state_switch
+      reason_code: market_reseal_rate_drop_freeze
+      message: 回封率下滑且接力确认不足，冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: reseal_failure_freeze
+        allow_actions: [observe, reduce, exit]
+        focus: 停止追涨打板，优先观察承接修复
+      state:
+        market_state: frozen
+
+  - id: market-reseal-rate-drop-repair
+    name: 回封率修复恢复观察态
+    stage: market
+    priority: 68
+    description: 回封成功率回升、高位炸板率下降且题材扩散重新恢复后，恢复到谨慎观察态。
+    tags: [market, risk, reseal, repair]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: repair
+        - op: ge
+          left:
+            var: market.limit_up_reseal_rate
+          right: 0.63
+        - op: lt
+          left:
+            var: market.high_level_open_board_rate
+          right: 0.28
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.46
+    then:
+      result: state_switch
+      reason_code: market_reseal_rate_drop_repair
+      message: 回封率修复，恢复到谨慎观察态
+      payload:
+        state: cautious
+        gate_level: cautious_watch
+        allow_actions: [observe, candidate_entry]
+        focus: 仅恢复观察和板块内精选候选
+      state:
+        market_state: cautious

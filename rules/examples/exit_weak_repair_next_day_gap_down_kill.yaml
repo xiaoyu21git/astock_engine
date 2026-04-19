@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.weak_repair_next_day_gap_down_kill
+rules:
+  - id: weak-repair-next-day-gap-down-kill-exit
+    name: 弱修复次日低开再杀退出规则
+    stage: rebalance
+    priority: 94
+    description: 弱修复次日低开再杀并失守修复支撑时，执行退出。
+    tags: [a_share_short_term, exit, weak_repair, gap_down_kill]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_repair_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.next_day_close_below_repair_support_ratio
+          right: 0.997
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: exit
+      reason_code: weak_repair_next_day_gap_down_kill_exit
+      message: 弱修复次日低开再杀，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: weak-repair-next-day-gap-down-kill-reduce
+    name: 弱修复次日低开再杀减仓规则
+    stage: rebalance
+    priority: 81
+    description: 弱修复次日低开但尚有部分承接时，先减仓防守。
+    tags: [a_share_short_term, exit, weak_repair, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_repair_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.next_day_close_below_repair_support_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 60
+        - op: lt
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: reduce
+      reason_code: weak_repair_next_day_gap_down_kill_reduce
+      message: 弱修复次日再杀转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

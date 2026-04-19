@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.entry.hft_orderflow_reclaim
+rules:
+  - id: hft-orderflow-reclaim-invalidated
+    name: 盘口扫单回补失效规则
+    stage: signal
+    priority: 97
+    description: 盘口扫单后未形成回补确认、盘口承接不足或微结构不稳定时，不推进高频候选。
+    tags: [entry, high_frequency, orderflow, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.orderflow_sweep_reclaim_confirmed
+        - op: lt
+          left:
+            var: candidate.bid_acceptance_score
+          right: 0.22
+        - op: lt
+          left:
+            var: candidate.micro_pullback_reclaim_ratio
+          right: 1.0
+    then:
+      result: block
+      reason_code: hft_orderflow_reclaim_invalidated
+      message: 盘口扫单回补确认不足，不进入高频候选
+      payload:
+        state: watch_only
+
+  - id: hft-orderflow-reclaim-candidate
+    name: 盘口扫单回补候选规则
+    stage: signal
+    priority: 89
+    description: 盘口出现扫单后迅速回补、买方承接明显且微结构稳定时，输出高频候选。
+    tags: [entry, high_frequency, orderflow, microstructure]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.orderflow_sweep_reclaim_confirmed
+        - op: ge
+          left:
+            var: candidate.bid_acceptance_score
+          right: 0.28
+        - op: ge
+          left:
+            var: candidate.micro_pullback_reclaim_ratio
+          right: 1.002
+        - op: ge
+          left:
+            var: market.microstructure_stability_score
+          right: 0.58
+    then:
+      result: candidate_entry
+      reason_code: hft_orderflow_reclaim_candidate
+      message: 标的满足盘口扫单回补高频候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: hft_orderflow_reclaim
+      score:
+        var: candidate.bid_acceptance_score

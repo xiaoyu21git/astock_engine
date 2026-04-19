@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.high_divergence_weakening
+rules:
+  - id: high-divergence-weakening-block
+    name: 高位分歧转弱放弃规则
+    stage: signal
+    priority: 98
+    description: 高位分歧持续扩大且核心强度滑落时，取消继续关注。
+    tags: [a_share_short_term, watch, divergence, weakening]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.high_divergence_confirmed
+            - op: lt
+              left:
+                var: candidate.relative_core_strength_score
+              right: 58
+        - op: lt
+          left:
+            var: candidate.close_below_reference_ratio
+          right: 0.99
+        - op: ge
+          left:
+            var: market.high_level_divergence_rate
+          right: 0.42
+    then:
+      result: block
+      reason_code: high_divergence_weakening_block
+      message: 高位分歧转弱，取消继续关注
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: high-divergence-continue-watch
+    name: 高位分歧继续观察规则
+    stage: signal
+    priority: 62
+    description: 分歧仍可控时继续保留观察，但不直接推进到进攻。
+    tags: [a_share_short_term, watch, divergence, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.high_divergence_confirmed
+        - op: ge
+          left:
+            var: candidate.relative_core_strength_score
+          right: 58
+        - op: lt
+          left:
+            var: market.high_level_divergence_rate
+          right: 0.42
+    then:
+      result: pass
+      reason_code: high_divergence_continue_watch
+      message: 分歧仍在可控范围，继续观察
+      payload:
+        state: watchlist

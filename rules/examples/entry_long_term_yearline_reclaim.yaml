@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.entry.long_term_yearline_reclaim
+rules:
+  - id: long-term-yearline-reclaim-invalidated
+    name: 年线收复失效规则
+    stage: signal
+    priority: 95
+    description: 年线未被有效收复或长期趋势仍向下时，不推进长线趋势候选。
+    tags: [entry, long_term, yearline, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.yearline_reclaim_confirmed
+        - op: lt
+          left:
+            var: candidate.close_to_ma250_ratio
+          right: 1.0
+        - op: lt
+          left:
+            var: candidate.ma250_trend_slope
+          right: 0.0
+    then:
+      result: block
+      reason_code: long_term_yearline_reclaim_invalidated
+      message: 年线收复条件不足，不进入长线候选
+      payload:
+        state: watch_only
+
+  - id: long-term-yearline-reclaim-candidate
+    name: 年线收复回踩确认规则
+    stage: signal
+    priority: 80
+    description: 长期均线被重新收复且长期趋势斜率恢复向上时，输出长线趋势候选。
+    tags: [entry, long_term, yearline, ma250]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.yearline_reclaim_confirmed
+        - op: ge
+          left:
+            var: candidate.close_to_ma250_ratio
+          right: 1.002
+        - op: ge
+          left:
+            var: candidate.ma250_trend_slope
+          right: 0.0
+        - op: ge
+          left:
+            var: market.long_term_trend_participation_rate
+          right: 0.36
+    then:
+      result: candidate_entry
+      reason_code: long_term_yearline_reclaim_candidate
+      message: 标的满足年线收复回踩确认条件
+      payload:
+        state: ready_to_buy
+        entry_style: long_term_yearline_reclaim
+      score:
+        var: candidate.close_to_ma250_ratio

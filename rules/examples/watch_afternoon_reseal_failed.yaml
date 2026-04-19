@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.afternoon_reseal_failed
+rules:
+  - id: afternoon-reseal-failed-block
+    name: 午后回封失败阻断规则
+    stage: signal
+    priority: 97
+    description: 午后回封尝试未能站稳且重新失守回封支点时，取消继续追踪。
+    tags: [a_share_short_term, watch, afternoon_reseal, failed]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.afternoon_reseal_attempted
+            - op: lt
+              left:
+                var: candidate.reseal_hold_minutes
+              right: 20
+            - op: lt
+              left:
+                var: candidate.close_below_reseal_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.afternoon_reseal_success_rate
+          right: 0.32
+    then:
+      result: block
+      reason_code: afternoon_reseal_failed_block
+      message: 午后回封失败，取消追踪与追板
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: afternoon-reseal-continue-watch
+    name: 午后回封继续观察规则
+    stage: signal
+    priority: 60
+    description: 午后回封尚可维持时继续观察，但不直接放宽进攻。
+    tags: [a_share_short_term, watch, afternoon_reseal, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.afternoon_reseal_attempted
+        - op: ge
+          left:
+            var: candidate.reseal_hold_minutes
+          right: 20
+        - op: ge
+          left:
+            var: market.afternoon_reseal_success_rate
+          right: 0.32
+    then:
+      result: pass
+      reason_code: afternoon_reseal_continue_watch
+      message: 午后回封仍可观察
+      payload:
+        state: watchlist

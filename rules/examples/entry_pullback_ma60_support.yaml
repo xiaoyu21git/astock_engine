@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.entry.pullback_ma60_support
+rules:
+  - id: pullback-ma60-invalidated
+    name: 回踩60日线失效规则
+    stage: signal
+    priority: 97
+    description: 回踩 60 日线后未能企稳或中期趋势转弱时，不推进中继趋势候选。
+    tags: [a_share_short_term, entry, pullback, ma60, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.pullback_ma60_support_confirmed
+        - op: lt
+          left:
+            var: candidate.close_to_ma60_ratio
+          right: 0.99
+        - op: lt
+          left:
+            var: candidate.ma60_trend_slope
+          right: 0.0
+    then:
+      result: block
+      reason_code: pullback_ma60_invalidated
+      message: 回踩60日线后未能企稳，不进入中继趋势候选
+      payload:
+        state: watch_only
+
+  - id: pullback-ma60-candidate
+    name: 回踩60日线候选规则
+    stage: signal
+    priority: 87
+    description: 中期趋势中回踩 60 日线并企稳修复时，输出中继趋势候选。
+    tags: [a_share_short_term, entry, pullback, ma60]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.pullback_ma60_support_confirmed
+        - op: ge
+          left:
+            var: candidate.close_to_ma60_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: candidate.ma60_trend_slope
+          right: 0.0
+        - op: ge
+          left:
+            var: market.trend_pullback_rebound_rate
+          right: 0.28
+    then:
+      result: candidate_entry
+      reason_code: pullback_ma60_candidate
+      message: 标的满足回踩60日线中继趋势候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: pullback_ma60
+        support_line: ma60
+      score:
+        var: candidate.close_to_ma60_ratio

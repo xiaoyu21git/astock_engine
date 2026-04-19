@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.rebound_over_previous_high_failed
+rules:
+  - id: rebound-over-previous-high-failed-exit
+    name: 反抽过前高失败退出规则
+    stage: rebalance
+    priority: 94
+    description: 反抽尝试突破前高但未能站稳并重新失守突破位时，执行退出。
+    tags: [a_share_short_term, exit, rebound, previous_high_failed]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.rebound_over_previous_high_attempted
+        - op: truthy
+          value:
+            var: position.breakout_hold_failed
+        - op: lt
+          left:
+            var: position.previous_high_breakout_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 54
+    then:
+      result: exit
+      reason_code: rebound_over_previous_high_failed_exit
+      message: 反抽过前高失败，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: rebound-over-previous-high-failed-reduce
+    name: 反抽过前高失败减仓规则
+    stage: rebalance
+    priority: 81
+    description: 反抽突破前高后的承接边际转弱但未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, rebound, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.rebound_over_previous_high_attempted
+        - op: truthy
+          value:
+            var: position.breakout_hold_failed
+        - op: lt
+          left:
+            var: position.previous_high_breakout_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 54
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 66
+    then:
+      result: reduce
+      reason_code: rebound_over_previous_high_failed_reduce
+      message: 反抽过前高后承接转弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

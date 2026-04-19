@@ -1,0 +1,39 @@
+version: 1
+namespace: trading.risk.market_bull_trend_allow_entry
+rules:
+  - id: market-bull-trend-allow-entry
+    name: 牛市趋势放行新开仓
+    stage: market
+    priority: 90
+    description: 市场处于牛市趋势阶段且广度、趋势强度与年线站稳比例同步改善时，允许恢复趋势类新增仓位。
+    tags: [market, gate, bull_market, trend, allow_entry]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.regime_state
+          right: bull
+        - op: ge
+          left:
+            var: market.breadth_above_ma60_ratio
+          right: 0.58
+        - op: ge
+          left:
+            var: market.index_above_ma120_ratio
+          right: 1.01
+        - op: ge
+          left:
+            var: market.trend_strength_score
+          right: 0.62
+    then:
+      result: state_switch
+      reason_code: market_bull_trend_allow_entry
+      message: 市场进入牛市趋势阶段，允许恢复趋势类新增仓位
+      payload:
+        state: active
+        gate_level: bull_market_allow
+        allow_actions: [observe, candidate_entry, open]
+        focus: 优先放行趋势突破、回踩确认和中长线趋势类候选
+      state:
+        market_state: active

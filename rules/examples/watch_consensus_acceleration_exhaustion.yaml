@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.consensus_acceleration_exhaustion
+rules:
+  - id: consensus-acceleration-exhaustion-block
+    name: 一致加速衰竭阻断规则
+    stage: signal
+    priority: 99
+    description: 一致加速进入衰竭边缘时，阻断继续追踪与接力。
+    tags: [a_share_short_term, watch, consensus, exhaustion]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.consensus_acceleration_confirmed
+            - op: ge
+              left:
+                var: candidate.intraday_chase_saturation_score
+              right: 84
+            - op: ge
+              left:
+                var: candidate.first_divergence_pullback_ratio
+              right: 0.03
+        - op: ge
+          left:
+            var: market.high_consensus_collapse_rate
+          right: 0.28
+    then:
+      result: block
+      reason_code: consensus_acceleration_exhaustion_block
+      message: 一致加速已出现衰竭信号，停止追踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: consensus-acceleration-hold-watch
+    name: 一致加速继续观察规则
+    stage: signal
+    priority: 65
+    description: 一致加速尚未衰竭时继续观察，但不放松风险。
+    tags: [a_share_short_term, watch, consensus, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.consensus_acceleration_confirmed
+        - op: lt
+          left:
+            var: candidate.intraday_chase_saturation_score
+          right: 84
+        - op: lt
+          left:
+            var: market.high_consensus_collapse_rate
+          right: 0.28
+    then:
+      result: pass
+      reason_code: consensus_acceleration_hold_watch
+      message: 一致加速仍可观察
+      payload:
+        state: watchlist

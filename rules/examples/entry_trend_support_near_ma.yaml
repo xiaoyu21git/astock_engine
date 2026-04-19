@@ -1,0 +1,48 @@
+version: 1
+namespace: trading.entry.trend_support_near_ma
+rules:
+  - id: trend-support-near-ma-candidate
+    name: 趋势支撑邻近候选规则
+    stage: signal
+    priority: 83
+    description: 标的贴近 20 日线或 60 日线附近运行且趋势未明显走坏时，输出趋势延续候选。
+    tags: [a_share_short_term, entry, trend, support, ma20, ma60, candidate_only]
+    when:
+      op: any
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.pullback_ma20_support_confirmed
+        - op: truthy
+          value:
+            var: candidate.pullback_ma60_support_confirmed
+        - op: all
+          conditions:
+            - op: ge
+              left:
+                var: candidate.close_to_ma20_ratio
+              right: 0.985
+            - op: ge
+              left:
+                var: candidate.ma20_trend_slope
+              right: -0.010
+        - op: all
+          conditions:
+            - op: ge
+              left:
+                var: candidate.close_to_ma60_ratio
+              right: 0.990
+            - op: ge
+              left:
+                var: candidate.ma60_trend_slope
+              right: -0.006
+    then:
+      result: candidate_entry
+      reason_code: trend_support_near_ma_candidate
+      message: 标的满足趋势支撑邻近候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: trend_support_near_ma
+        support_line: dynamic_ma_support
+      score:
+        var: market.trend_pullback_rebound_rate

@@ -1,0 +1,75 @@
+version: 1
+namespace: trading.entry.weak_to_strong
+rules:
+  - id: weak-to-strong-candidate
+    name: 弱转强候选规则
+    stage: signal
+    priority: 90
+    description: 标的先转弱，再通过价格修复、量能回升和情绪环境确认重新进入进攻候选。
+    tags: [a_share_short_term, entry, weak_to_strong]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.previous_weakness_confirmed
+        - op: ge
+          left:
+            var: candidate.reclaim_reference_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: candidate.volume_ratio_to_5d_avg
+          right: 1.6
+        - op: any
+          conditions:
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: repair
+            - op: eq
+              left:
+                var: market.emotion_cycle
+              right: warm
+        - op: lt
+          left:
+            var: candidate.change_percent
+          right: 9.9
+    then:
+      result: candidate_entry
+      reason_code: weak_to_strong_candidate
+      message: 标的满足弱转强候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: weak_to_strong
+        order_hint: half_road
+      score:
+        var: candidate.reclaim_reference_strength
+
+  - id: weak-to-strong-invalidated
+    name: 弱转强失效规则
+    stage: signal
+    priority: 95
+    description: 弱转强观察中，如果修复失败或情绪退潮，则取消候选。
+    tags: [a_share_short_term, signal, weak_to_strong, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: lt
+          left:
+            var: candidate.reclaim_reference_ratio
+          right: 0.98
+        - op: lt
+          left:
+            var: candidate.volume_ratio_to_5d_avg
+          right: 0.8
+        - op: eq
+          left:
+            var: market.emotion_cycle
+          right: cooling
+    then:
+      result: block
+      reason_code: weak_to_strong_invalidated
+      message: 弱转强修复条件失效
+      payload:
+        state: abandoned

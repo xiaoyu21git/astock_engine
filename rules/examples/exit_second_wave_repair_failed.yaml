@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.second_wave_repair_failed
+rules:
+  - id: second-wave-repair-failed-exit
+    name: 二波修复失败退出规则
+    stage: rebalance
+    priority: 94
+    description: 二波修复尝试失效并重新跌回突破位下方时，执行退出。
+    tags: [a_share_short_term, exit, second_wave, repair_fail]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.second_wave_repair_attempted
+        - op: truthy
+          value:
+            var: position.repair_follow_through_failed
+        - op: lt
+          left:
+            var: position.second_wave_breakout_ratio
+          right: 0.997
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.82
+    then:
+      result: exit
+      reason_code: second_wave_repair_failed_exit
+      message: 二波修复失败，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: second-wave-repair-failed-reduce
+    name: 二波修复失败减仓规则
+    stage: rebalance
+    priority: 81
+    description: 二波修复延续不足但未完全崩坏时，先减仓防守。
+    tags: [a_share_short_term, exit, second_wave, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.second_wave_repair_attempted
+        - op: truthy
+          value:
+            var: position.repair_follow_through_failed
+        - op: lt
+          left:
+            var: position.second_wave_breakout_ratio
+          right: 0.999
+        - op: ge
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.82
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.93
+    then:
+      result: reduce
+      reason_code: second_wave_repair_failed_reduce
+      message: 二波修复延续不足，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

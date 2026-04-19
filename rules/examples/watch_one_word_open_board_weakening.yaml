@@ -1,0 +1,65 @@
+version: 1
+namespace: trading.watch.one_word_open_board_weakening
+rules:
+  - id: one-word-open-board-weakening-block
+    name: 一字开板转弱阻断规则
+    stage: signal
+    priority: 98
+    description: 一字板开板后承接不足且收盘失守开板支点时，取消继续关注。
+    tags: [a_share_short_term, watch, one_word_board, weakening]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.one_word_board_yesterday_confirmed
+            - op: truthy
+              value:
+                var: candidate.open_board_today_confirmed
+            - op: lt
+              left:
+                var: candidate.open_board_acceptance_score
+              right: 58
+        - op: lt
+          left:
+            var: candidate.close_below_open_board_pivot_ratio
+          right: 0.998
+    then:
+      result: block
+      reason_code: one_word_open_board_weakening_block
+      message: 一字开板后转弱，取消继续关注
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: one-word-open-board-continue-watch
+    name: 一字开板继续观察规则
+    stage: signal
+    priority: 60
+    description: 一字开板后承接尚可时继续观察，但不直接接力。
+    tags: [a_share_short_term, watch, one_word_board, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.one_word_board_yesterday_confirmed
+        - op: truthy
+          value:
+            var: candidate.open_board_today_confirmed
+        - op: ge
+          left:
+            var: candidate.open_board_acceptance_score
+          right: 58
+        - op: ge
+          left:
+            var: candidate.close_below_open_board_pivot_ratio
+          right: 0.998
+    then:
+      result: pass
+      reason_code: one_word_open_board_continue_watch
+      message: 一字开板承接尚可，继续观察
+      payload:
+        state: watchlist

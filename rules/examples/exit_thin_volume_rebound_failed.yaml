@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.thin_volume_rebound_failed
+rules:
+  - id: thin-volume-rebound-failed-exit
+    name: 地量反抽失败退出规则
+    stage: rebalance
+    priority: 95
+    description: 地量反抽确认失败并重新失守反抽支点时，直接退出。
+    tags: [a_share_short_term, exit, thin_volume, rebound_failed]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.thin_volume_rebound_attempted
+        - op: truthy
+          value:
+            var: position.rebound_confirmation_failed
+        - op: lt
+          left:
+            var: position.close_below_rebound_pivot_ratio
+          right: 0.99
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.85
+    then:
+      result: exit
+      reason_code: thin_volume_rebound_failed_exit
+      message: 地量反抽失败，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: thin-volume-rebound-failed-reduce
+    name: 地量反抽失败减仓规则
+    stage: rebalance
+    priority: 81
+    description: 地量反抽偏弱但未完全失效时，先减仓防守。
+    tags: [a_share_short_term, exit, thin_volume, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.thin_volume_rebound_attempted
+        - op: truthy
+          value:
+            var: position.rebound_confirmation_failed
+        - op: ge
+          left:
+            var: position.volume_recovery_ratio
+          right: 0.85
+        - op: lt
+          left:
+            var: position.volume_recovery_ratio
+          right: 1.0
+    then:
+      result: reduce
+      reason_code: thin_volume_rebound_failed_reduce
+      message: 地量反抽修复偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.4
+        state: defense_mode

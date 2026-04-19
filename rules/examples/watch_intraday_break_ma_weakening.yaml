@@ -1,0 +1,62 @@
+version: 1
+namespace: trading.watch.intraday_break_ma_weakening
+rules:
+  - id: intraday-break-ma-weakening-block
+    name: 分时破均线弱化阻断规则
+    stage: signal
+    priority: 97
+    description: 强势结构跌破分时均线且回拉失败时，取消继续跟踪。
+    tags: [a_share_short_term, watch, intraday_ma, weakening]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.intraday_ma_break_confirmed
+            - op: truthy
+              value:
+                var: candidate.intraday_ma_reclaim_failed
+            - op: lt
+              left:
+                var: candidate.close_below_intraday_ma_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.intraday_trend_hold_rate
+          right: 0.43
+    then:
+      result: block
+      reason_code: intraday_break_ma_weakening_block
+      message: 分时破均线后无法回拉，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: intraday-break-ma-weakening-continue-watch
+    name: 分时破均线继续观察规则
+    stage: signal
+    priority: 60
+    description: 跌破分时均线后仍有修复空间时，仅保留观察。
+    tags: [a_share_short_term, watch, intraday_ma, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.intraday_ma_break_confirmed
+        - op: ge
+          left:
+            var: candidate.close_below_intraday_ma_ratio
+          right: 0.998
+        - op: ge
+          left:
+            var: market.intraday_trend_hold_rate
+          right: 0.43
+    then:
+      result: pass
+      reason_code: intraday_break_ma_continue_watch
+      message: 分时破均线但仍有修复空间，继续观察
+      payload:
+        state: watchlist

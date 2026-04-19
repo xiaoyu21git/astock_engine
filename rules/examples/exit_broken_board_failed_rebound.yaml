@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.broken_board_failed_rebound
+rules:
+  - id: broken-board-failed-rebound-exit
+    name: 断板反抽失败退出规则
+    stage: rebalance
+    priority: 96
+    description: 连板断板后反抽修复失败且再次失守修复位时，直接退出。
+    tags: [a_share_short_term, exit, board_break, failed_rebound]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_break_confirmed
+        - op: truthy
+          value:
+            var: position.rebound_attempt_failed
+        - op: lt
+          left:
+            var: position.close_below_intraday_reclaim_ratio
+          right: 0.99
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 48
+    then:
+      result: exit
+      reason_code: broken_board_failed_rebound_exit
+      message: 断板反抽失败，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: broken-board-failed-rebound-reduce
+    name: 断板反抽失败减仓规则
+    stage: rebalance
+    priority: 83
+    description: 断板后修复弱于预期，但还未完全失守时，先减仓防守。
+    tags: [a_share_short_term, exit, board_break, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_break_confirmed
+        - op: truthy
+          value:
+            var: position.rebound_attempt_failed
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 48
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 62
+    then:
+      result: reduce
+      reason_code: broken_board_failed_rebound_reduce
+      message: 断板修复偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

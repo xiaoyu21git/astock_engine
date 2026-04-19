@@ -1,0 +1,57 @@
+version: 1
+namespace: trading.watch.overtake_success_next_day_no_strengthening
+rules:
+  - id: overtake-success-next-day-no-strengthening-block
+    name: 卡位成功次日不加强阻断规则
+    stage: signal
+    priority: 97
+    description: 卡位成功后次日未继续加强并失守卡位支点时，取消继续跟踪。
+    tags: [a_share_short_term, watch, overtake_success, no_strengthening]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.overtake_signal_confirmed
+        - op: lt
+          left:
+            var: candidate.next_day_strengthening_ratio
+          right: 0.985
+        - op: lt
+          left:
+            var: candidate.close_below_overtake_pivot_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: candidate.relative_core_strength_score
+          right: 65
+    then:
+      result: block
+      reason_code: overtake_success_next_day_no_strengthening_block
+      message: 卡位成功次日不加强，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: overtake-success-next-day-continue-watch
+    name: 卡位成功继续观察规则
+    stage: signal
+    priority: 60
+    description: 卡位成功后次日仍保留继续加强迹象时，仅继续观察。
+    tags: [a_share_short_term, watch, overtake_success, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.overtake_signal_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_strengthening_ratio
+          right: 0.985
+    then:
+      result: pass
+      reason_code: overtake_success_next_day_continue_watch
+      message: 卡位成功次日仍有加强，继续观察
+      payload:
+        state: watchlist

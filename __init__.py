@@ -286,6 +286,7 @@ __author__ = "ASTOCK Team"
 
 # 导入core模块
 from .core import EventBus, EventType, Event, create_event
+from .quant_data_manager import QuantDataManager
 
 # 导出公共API
 __all__ = [
@@ -299,6 +300,7 @@ __all__ = [
     "EventFormat",
     "EventValue",
     "ExecutionMode",
+    "QuantDataManager",
 ]
 
 print(f"ASTOCK Quant Engine v{__version__} initialized")

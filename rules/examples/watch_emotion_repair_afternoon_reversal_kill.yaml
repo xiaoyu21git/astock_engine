@@ -1,0 +1,60 @@
+version: 1
+namespace: trading.watch.emotion_repair_afternoon_reversal_kill
+rules:
+  - id: emotion-repair-afternoon-reversal-kill-block
+    name: 情绪修复后午后反杀阻断规则
+    stage: signal
+    priority: 97
+    description: 情绪修复日午后出现反杀并失守修复支点时，取消继续跟踪与追涨。
+    tags: [a_share_short_term, watch, emotion_repair, afternoon_reversal_kill]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.emotion_repair_confirmed
+        - op: truthy
+          value:
+            var: candidate.afternoon_reversal_kill_confirmed
+        - op: lt
+          left:
+            var: candidate.close_below_afternoon_repair_pivot_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: candidate.repair_follow_strength_score
+          right: 55
+    then:
+      result: block
+      reason_code: emotion_repair_afternoon_reversal_kill_block
+      message: 情绪修复后午后反杀，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: emotion-repair-afternoon-continue-watch
+    name: 情绪修复午后继续观察规则
+    stage: signal
+    priority: 60
+    description: 情绪修复日午后仍保留较强跟随强度时，仅继续观察。
+    tags: [a_share_short_term, watch, emotion_repair, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: market.emotion_repair_confirmed
+        - op: ge
+          left:
+            var: candidate.close_below_afternoon_repair_pivot_ratio
+          right: 0.998
+        - op: ge
+          left:
+            var: candidate.repair_follow_strength_score
+          right: 55
+    then:
+      result: pass
+      reason_code: emotion_repair_afternoon_reversal_kill_continue_watch
+      message: 情绪修复午后仍有承接，继续观察
+      payload:
+        state: watchlist

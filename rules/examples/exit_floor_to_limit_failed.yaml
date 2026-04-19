@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.floor_to_limit_failed
+rules:
+  - id: floor-to-limit-failed-exit
+    name: 地天板失败退出规则
+    stage: rebalance
+    priority: 97
+    description: 地天板修复失败并再次失守关键回封位时，直接退出。
+    tags: [a_share_short_term, exit, floor_to_limit, failed]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.floor_to_limit_attempted
+        - op: truthy
+          value:
+            var: position.limit_reseal_failed
+        - op: lt
+          left:
+            var: position.close_below_limit_reclaim_ratio
+          right: 0.99
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 50
+    then:
+      result: exit
+      reason_code: floor_to_limit_failed_exit
+      message: 地天板修复失败，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: floor-to-limit-failed-reduce
+    name: 地天板失败减仓规则
+    stage: rebalance
+    priority: 86
+    description: 地天板修复偏弱但尚未完全崩坏时，先减仓防守。
+    tags: [a_share_short_term, exit, floor_to_limit, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.floor_to_limit_attempted
+        - op: truthy
+          value:
+            var: position.limit_reseal_failed
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 50
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 65
+    then:
+      result: reduce
+      reason_code: floor_to_limit_failed_reduce
+      message: 地天板修复偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

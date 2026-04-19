@@ -1,0 +1,70 @@
+version: 1
+namespace: trading.watch.tail_ramp_next_day_weakening
+rules:
+  - id: tail-ramp-next-day-weakening-block
+    name: 尾盘偷袭次日弱化阻断规则
+    stage: signal
+    priority: 98
+    description: 尾盘偷袭后次日未能形成有效延续时，取消追踪与追买。
+    tags: [a_share_short_term, watch, tail_ramp, weakening]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.tail_ramp_attack_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_open_strength_ratio
+              right: 0.995
+            - op: lt
+              left:
+                var: candidate.next_day_volume_follow_ratio
+              right: 0.82
+        - op: truthy
+          value:
+            var: candidate.next_day_red_to_black_failed
+        - op: lt
+          left:
+            var: market.tail_attack_follow_through_rate
+          right: 0.35
+    then:
+      result: block
+      reason_code: tail_ramp_next_day_weakening_block
+      message: 尾盘偷袭次日弱化，取消追踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: tail-ramp-next-day-hold-watch
+    name: 尾盘偷袭次日继续观察规则
+    stage: signal
+    priority: 63
+    description: 次日仍有一定承接延续时保留观察，但不直接追击。
+    tags: [a_share_short_term, watch, tail_ramp, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.tail_ramp_attack_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_open_strength_ratio
+          right: 0.995
+        - op: ge
+          left:
+            var: candidate.next_day_volume_follow_ratio
+          right: 0.82
+        - op: ge
+          left:
+            var: market.tail_attack_follow_through_rate
+          right: 0.35
+    then:
+      result: pass
+      reason_code: tail_ramp_next_day_hold_watch
+      message: 尾盘偷袭仍有一定延续，继续观察
+      payload:
+        state: watchlist

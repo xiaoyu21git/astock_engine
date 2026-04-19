@@ -1,0 +1,66 @@
+version: 1
+namespace: trading.watch.spike_fail_before_limit
+rules:
+  - id: spike-fail-before-limit-block
+    name: 冲高未板回落阻断规则
+    stage: signal
+    priority: 97
+    description: 冲高打板失败后快速回落并失守攻击位时，取消继续追踪与追涨。
+    tags: [a_share_short_term, watch, spike_fail, failed_limit]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.intraday_spike_attack_confirmed
+            - op: truthy
+              value:
+                var: candidate.failed_to_limit_board_confirmed
+            - op: ge
+              left:
+                var: candidate.pullback_from_intraday_high_ratio
+              right: 0.028
+            - op: lt
+              left:
+                var: candidate.close_below_intraday_attack_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.spike_to_limit_success_rate
+          right: 0.31
+    then:
+      result: block
+      reason_code: spike_fail_before_limit_block
+      message: 冲高未板后快速回落，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: spike-fail-before-limit-continue-watch
+    name: 冲高未板继续观察规则
+    stage: signal
+    priority: 60
+    description: 冲高后虽未板但回落有限且环境仍可接受时，仅保留观察，不直接追击。
+    tags: [a_share_short_term, watch, spike_fail, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.intraday_spike_attack_confirmed
+        - op: lt
+          left:
+            var: candidate.pullback_from_intraday_high_ratio
+          right: 0.028
+        - op: ge
+          left:
+            var: market.spike_to_limit_success_rate
+          right: 0.31
+    then:
+      result: pass
+      reason_code: spike_fail_before_limit_continue_watch
+      message: 冲高未板但尚未明显走坏，继续观察
+      payload:
+        state: watchlist

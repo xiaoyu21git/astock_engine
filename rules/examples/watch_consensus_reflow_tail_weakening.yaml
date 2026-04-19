@@ -1,0 +1,58 @@
+version: 1
+namespace: trading.watch.consensus_reflow_tail_weakening
+rules:
+  - id: consensus-reflow-tail-weakening-block
+    name: 一致回流后尾盘走弱阻断规则
+    stage: signal
+    priority: 97
+    description: 一致回流后尾盘承接转弱并失守回流支点时，取消继续跟踪与追涨。
+    tags: [a_share_short_term, watch, consensus_reflow, tail_weakening]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.consensus_reflow_confirmed
+            - op: truthy
+              value:
+                var: candidate.tail_weakening_confirmed
+            - op: lt
+              left:
+                var: candidate.close_below_reflow_tail_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.consensus_reflow_hold_rate
+          right: 0.36
+    then:
+      result: block
+      reason_code: consensus_reflow_tail_weakening_block
+      message: 一致回流后尾盘走弱，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: consensus-reflow-tail-continue-watch
+    name: 一致回流继续观察规则
+    stage: signal
+    priority: 60
+    description: 一致回流后尾盘仍能维持强势结构时，仅继续观察。
+    tags: [a_share_short_term, watch, consensus_reflow, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.consensus_reflow_confirmed
+        - op: ge
+          left:
+            var: market.consensus_reflow_hold_rate
+          right: 0.36
+    then:
+      result: pass
+      reason_code: consensus_reflow_tail_continue_watch
+      message: 一致回流后尾盘仍有承接，继续观察
+      payload:
+        state: watchlist

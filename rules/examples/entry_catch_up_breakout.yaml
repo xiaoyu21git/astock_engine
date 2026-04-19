@@ -1,0 +1,67 @@
+version: 1
+namespace: trading.entry.catch_up_breakout
+rules:
+  - id: catch-up-breakout-invalidated
+    name: 补涨启动失效规则
+    stage: signal
+    priority: 96
+    description: 龙头未锁定、题材扩散不足或补涨空间消失时，不做补涨启动。
+    tags: [a_share_short_term, entry, catch_up, invalidation]
+    when:
+      op: any
+      conditions:
+        - op: not
+          value:
+            var: candidate.theme_leader_locked
+        - op: lt
+          left:
+            var: candidate.lagging_return_percent
+          right: 3.0
+        - op: lt
+          left:
+            var: market.theme_breadth
+          right: 0.35
+    then:
+      result: block
+      reason_code: catch_up_breakout_invalidated
+      message: 补涨前提不足，不进入候选
+      payload:
+        state: watch_only
+
+  - id: catch-up-breakout-candidate
+    name: 补涨启动候选规则
+    stage: signal
+    priority: 89
+    description: 龙头锁定后，后排补涨标的放量突破关键位时进入候选。
+    tags: [a_share_short_term, entry, catch_up, breakout]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.theme_leader_locked
+        - op: ge
+          left:
+            var: candidate.lagging_return_percent
+          right: 5.0
+        - op: ge
+          left:
+            var: candidate.breakout_neckline_ratio
+          right: 1.01
+        - op: le
+          left:
+            var: candidate.theme_heat_rank
+          right: 8
+        - op: ge
+          left:
+            var: market.theme_breadth
+          right: 0.45
+    then:
+      result: candidate_entry
+      reason_code: catch_up_breakout_candidate
+      message: 标的满足补涨启动候选条件
+      payload:
+        state: ready_to_buy
+        entry_style: catch_up_breakout
+      score:
+        var: candidate.lagging_return_percent

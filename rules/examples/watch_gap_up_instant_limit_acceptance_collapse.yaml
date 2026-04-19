@@ -1,0 +1,61 @@
+version: 1
+namespace: trading.watch.gap_up_instant_limit_acceptance_collapse
+rules:
+  - id: gap-up-instant-limit-acceptance-collapse-block
+    name: 高开秒板后承接塌陷阻断规则
+    stage: signal
+    priority: 97
+    description: 高开秒板后快速开板、承接塌陷并失守关键支点时，取消继续跟踪与追板。
+    tags: [a_share_short_term, watch, gap_up, instant_limit]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.gap_up_instant_limit_confirmed
+            - op: truthy
+              value:
+                var: candidate.instant_limit_open_board_confirmed
+            - op: truthy
+              value:
+                var: candidate.acceptance_collapse_confirmed
+            - op: lt
+              left:
+                var: candidate.close_below_instant_limit_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.instant_limit_follow_through_rate
+          right: 0.31
+    then:
+      result: block
+      reason_code: gap_up_instant_limit_acceptance_collapse_block
+      message: 高开秒板后承接塌陷，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: gap-up-instant-limit-continue-watch
+    name: 高开秒板继续观察规则
+    stage: signal
+    priority: 60
+    description: 高开秒板后仍保留承接与环境支撑时，仅继续观察。
+    tags: [a_share_short_term, watch, gap_up, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.gap_up_instant_limit_confirmed
+        - op: ge
+          left:
+            var: market.instant_limit_follow_through_rate
+          right: 0.31
+    then:
+      result: pass
+      reason_code: gap_up_instant_limit_continue_watch
+      message: 高开秒板后仍有延续空间，继续观察
+      payload:
+        state: watchlist

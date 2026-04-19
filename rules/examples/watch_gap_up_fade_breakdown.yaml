@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.gap_up_fade_breakdown
+rules:
+  - id: gap-up-fade-breakdown-block
+    name: 高开低走失守阻断规则
+    stage: signal
+    priority: 97
+    description: 高开后回落并失守攻击结构时，取消继续跟踪与追涨。
+    tags: [a_share_short_term, watch, gap_up, fade_breakdown]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.gap_up_open_confirmed
+            - op: ge
+              left:
+                var: candidate.intraday_fade_from_open_ratio
+              right: 0.03
+            - op: lt
+              left:
+                var: candidate.close_below_gap_attack_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.gap_up_follow_through_rate
+          right: 0.34
+    then:
+      result: block
+      reason_code: gap_up_fade_breakdown_block
+      message: 高开低走失守，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: gap-up-continue-watch
+    name: 高开继续观察规则
+    stage: signal
+    priority: 61
+    description: 高开后仍有一定延续时继续观察，但不直接追击。
+    tags: [a_share_short_term, watch, gap_up, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.gap_up_open_confirmed
+        - op: lt
+          left:
+            var: candidate.intraday_fade_from_open_ratio
+          right: 0.03
+        - op: ge
+          left:
+            var: market.gap_up_follow_through_rate
+          right: 0.34
+    then:
+      result: pass
+      reason_code: gap_up_continue_watch
+      message: 高开仍可继续观察
+      payload:
+        state: watchlist

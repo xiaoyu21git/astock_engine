@@ -1,0 +1,39 @@
+version: 1
+namespace: trading.risk.market_bear_freeze_entry
+rules:
+  - id: market-bear-freeze-entry
+    name: 熊市冻结新开仓
+    stage: market
+    priority: 96
+    description: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位，防止在系统性下行中持续试错。
+    tags: [market, risk, bear_market, freeze]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.regime_state
+          right: bear
+        - op: lt
+          left:
+            var: market.breadth_above_ma60_ratio
+          right: 0.35
+        - op: ge
+          left:
+            var: market.drawdown_from_recent_high
+          right: 0.12
+        - op: ge
+          left:
+            var: market.volatility_shock_score
+          right: 0.62
+    then:
+      result: freeze
+      reason_code: market_bear_freeze_entry
+      message: 市场处于熊市退潮阶段，冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: bear_market_freeze
+        blocked_actions: [candidate_entry, open]
+        focus: 优先防守、减仓和等待系统性企稳
+      state:
+        market_state: frozen

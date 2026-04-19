@@ -1,0 +1,58 @@
+version: 1
+namespace: trading.watch.consensus_repair_next_day_acceptance_vanish
+rules:
+  - id: consensus-repair-next-day-acceptance-vanish-block
+    name: 一致修复次日承接消失阻断规则
+    stage: signal
+    priority: 97
+    description: 一致修复后次日承接迅速消失并失守修复支点时，取消继续跟踪与追涨。
+    tags: [a_share_short_term, watch, consensus_repair, acceptance_vanish]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.consensus_repair_confirmed
+            - op: truthy
+              value:
+                var: candidate.next_day_acceptance_vanish_confirmed
+            - op: lt
+              left:
+                var: candidate.close_below_repair_acceptance_pivot_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.consensus_repair_follow_through_rate
+          right: 0.35
+    then:
+      result: block
+      reason_code: consensus_repair_next_day_acceptance_vanish_block
+      message: 一致修复次日承接消失，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: consensus-repair-next-day-continue-watch
+    name: 一致修复继续观察规则
+    stage: signal
+    priority: 60
+    description: 一致修复后次日仍保留承接与延续时，仅继续观察。
+    tags: [a_share_short_term, watch, consensus_repair, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.consensus_repair_confirmed
+        - op: ge
+          left:
+            var: market.consensus_repair_follow_through_rate
+          right: 0.35
+    then:
+      result: pass
+      reason_code: consensus_repair_next_day_continue_watch
+      message: 一致修复次日仍有承接，继续观察
+      payload:
+        state: watchlist

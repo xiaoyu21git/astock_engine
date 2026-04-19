@@ -1,0 +1,64 @@
+version: 1
+namespace: trading.exit.engulfing_next_day_fade
+rules:
+  - id: engulfing-next-day-fade-exit
+    name: 反包次日冲高回落退出规则
+    stage: rebalance
+    priority: 95
+    description: 反包次日冲高后回落并失守承接位时，直接退出。
+    tags: [a_share_short_term, exit, engulfing, next_day_fade]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_yesterday_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_spike_then_fade_confirmed
+        - op: lt
+          left:
+            var: position.close_below_engulfing_support_ratio
+          right: 0.995
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 57
+    then:
+      result: exit
+      reason_code: engulfing_next_day_fade_exit
+      message: 反包次日冲高回落，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: engulfing-next-day-fade-reduce
+    name: 反包次日冲高回落减仓规则
+    stage: rebalance
+    priority: 82
+    description: 反包次日延续偏弱但尚未完全破坏时，先减仓处理。
+    tags: [a_share_short_term, exit, engulfing, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_yesterday_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_spike_then_fade_confirmed
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 57
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 68
+    then:
+      result: reduce
+      reason_code: engulfing_next_day_fade_reduce
+      message: 反包次日延续偏弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

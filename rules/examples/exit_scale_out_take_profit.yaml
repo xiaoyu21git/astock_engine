@@ -1,0 +1,81 @@
+version: 1
+namespace: trading.exit.scale_out_take_profit
+rules:
+  - id: scale-out-take-profit-first
+    name: 分批止盈第一档
+    stage: rebalance
+    priority: 85
+    description: 浮盈达到第一档且趋势未完全破坏时，先减仓一部分落袋。
+    tags: [exit, scale_out, take_profit]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: position.pnl_percent
+          right: 12
+        - op: lt
+          left:
+            var: position.pnl_percent
+          right: 20
+        - op: ge
+          left:
+            var: position.trend_health_score
+          right: 60
+    then:
+      result: reduce
+      reason_code: scale_out_take_profit_first
+      message: 浮盈达到第一档，执行分批止盈
+      payload:
+        reduce_ratio: 0.33
+        state: partial_take_profit
+
+  - id: scale-out-take-profit-second
+    name: 分批止盈第二档
+    stage: rebalance
+    priority: 90
+    description: 浮盈继续扩张但趋势出现放缓，进一步兑现收益。
+    tags: [exit, scale_out, take_profit]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: position.pnl_percent
+          right: 20
+        - op: lt
+          left:
+            var: position.trend_health_score
+          right: 70
+    then:
+      result: reduce
+      reason_code: scale_out_take_profit_second
+      message: 浮盈达到第二档，继续分批止盈
+      payload:
+        reduce_ratio: 0.5
+        state: scaled_out
+
+  - id: take-profit-full-exit
+    name: 趋势破坏后的止盈退出
+    stage: rebalance
+    priority: 95
+    description: 已有较大浮盈且趋势结构破坏时，直接完成止盈退出。
+    tags: [exit, take_profit, full_exit]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: position.pnl_percent
+          right: 8
+        - op: lt
+          left:
+            var: position.trend_health_score
+          right: 45
+    then:
+      result: exit
+      reason_code: take_profit_full_exit
+      message: 趋势破坏，执行止盈退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown

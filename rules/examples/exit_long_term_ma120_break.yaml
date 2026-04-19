@@ -1,0 +1,56 @@
+version: 1
+namespace: trading.exit.long_term_ma120_break
+rules:
+  - id: long-term-ma120-break-reduce
+    name: 跌破120日线减仓规则
+    stage: rebalance
+    priority: 82
+    description: 长线趋势开始失守 120 日线但尚未彻底崩坏时，先减仓回收风险。
+    tags: [exit, long_term, ma120, reduce]
+    when:
+      op: all
+      conditions:
+        - op: lt
+          left:
+            var: position.close_below_ma120_ratio
+          right: 0.998
+        - op: lt
+          left:
+            var: position.ma120_trend_slope
+          right: 0.0
+    then:
+      result: reduce
+      reason_code: long_term_ma120_break_reduce
+      message: 长线趋势跌破120日线，先减仓控制风险
+      payload:
+        state: defensive
+        action: reduce
+
+  - id: long-term-ma120-break-exit
+    name: 跌破120日线退出规则
+    stage: rebalance
+    priority: 95
+    description: 跌破 120 日线并伴随回撤扩大时，判定长线趋势破坏，优先退出持仓。
+    tags: [exit, long_term, ma120, exit]
+    when:
+      op: all
+      conditions:
+        - op: lt
+          left:
+            var: position.close_below_ma120_ratio
+          right: 0.992
+        - op: lt
+          left:
+            var: position.ma120_trend_slope
+          right: 0.0
+        - op: ge
+          left:
+            var: position.trailing_drawdown_ratio
+          right: 0.12
+    then:
+      result: exit
+      reason_code: long_term_ma120_break_exit
+      message: 长线趋势跌破120日线并伴随较大回撤，优先退出持仓
+      payload:
+        state: exited
+        action: exit

@@ -88,13 +88,14 @@ class DatabaseRepository:
                                        volume, turnover, change_pct, etc.]
         
         Returns:
-            保存的记录数
+            实际写入或更新的记录数
         """
         if df.empty:
             return 0
         
         with session_scope() as session:
             records = []
+            affected_count = 0
             for _, row in df.iterrows():
                 # 检查是否已存在
                 existing = session.query(DailyBar).filter(
@@ -106,12 +107,16 @@ class DatabaseRepository:
                 
                 if existing:
                     # 更新现有记录
+                    updated = False
                     for col in df.columns:
                         if col not in ['symbol', 'trade_date', 'id', 'created_at']:
                             value = DatabaseRepository._coerce_dataframe_value(row.get(col))
                             if value is None:
                                 continue
                             setattr(existing, col, value)
+                            updated = True
+                    if updated:
+                        affected_count += 1
                 else:
                     # 创建新记录
                     record = DailyBar(
@@ -135,11 +140,12 @@ class DatabaseRepository:
                         data_source=DatabaseRepository._coerce_dataframe_value(row.get('data_source'))
                     )
                     records.append(record)
+                    affected_count += 1
             
             if records:
                 session.bulk_save_objects(records)
             
-            return len(records)
+            return affected_count
     
     @staticmethod
     def get_daily_bars(symbol: str, start_date: date, end_date: date) -> pd.DataFrame:

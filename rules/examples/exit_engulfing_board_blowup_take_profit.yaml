@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.engulfing_board_blowup_take_profit
+rules:
+  - id: engulfing-board-blowup-take-profit-exit
+    name: 反包冲板后炸裂兑现退出规则
+    stage: rebalance
+    priority: 94
+    description: 反包冲板后炸裂兑现并失守关键支点时，执行退出。
+    tags: [a_share_short_term, exit, engulfing_board, blowup_take_profit]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_board_attempt_confirmed
+        - op: truthy
+          value:
+            var: position.board_blowup_take_profit_confirmed
+        - op: lt
+          left:
+            var: position.close_below_engulfing_board_pivot_ratio
+          right: 0.997
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: exit
+      reason_code: engulfing_board_blowup_take_profit_exit
+      message: 反包冲板后炸裂兑现，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: engulfing-board-blowup-take-profit-reduce
+    name: 反包冲板后炸裂兑现减仓规则
+    stage: rebalance
+    priority: 81
+    description: 反包冲板后炸裂兑现开始形成但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, engulfing_board, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.engulfing_board_attempt_confirmed
+        - op: truthy
+          value:
+            var: position.board_blowup_take_profit_confirmed
+        - op: lt
+          left:
+            var: position.close_below_engulfing_board_pivot_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.selling_pressure_score
+          right: 60
+        - op: lt
+          left:
+            var: position.selling_pressure_score
+          right: 72
+    then:
+      result: reduce
+      reason_code: engulfing_board_blowup_take_profit_reduce
+      message: 反包冲板后兑现升温，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

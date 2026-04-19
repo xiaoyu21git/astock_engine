@@ -1,0 +1,61 @@
+version: 1
+namespace: trading.watch.first_board_next_day_weak_to_weaker
+rules:
+  - id: first-board-next-day-weak-to-weaker-block
+    name: 首板次日弱转弱阻断规则
+    stage: signal
+    priority: 98
+    description: 首板次日未能形成强延续并确认弱转弱时，取消接力关注。
+    tags: [a_share_short_term, watch, first_board, weak_to_weaker]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.first_board_yesterday_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_open_below_expected_ratio
+              right: 0.995
+            - op: lt
+              left:
+                var: candidate.next_day_follow_through_strength_score
+              right: 55
+        - op: truthy
+          value:
+            var: candidate.next_day_weak_to_weaker_confirmed
+    then:
+      result: block
+      reason_code: first_board_next_day_weak_to_weaker_block
+      message: 首板次日弱转弱，取消接力关注
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: first-board-next-day-continue-watch
+    name: 首板次日继续观察规则
+    stage: signal
+    priority: 62
+    description: 首板次日仍保留一定延续强度时继续观察。
+    tags: [a_share_short_term, watch, first_board, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.first_board_yesterday_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_follow_through_strength_score
+          right: 55
+        - op: not
+          value:
+            var: candidate.next_day_weak_to_weaker_confirmed
+    then:
+      result: pass
+      reason_code: first_board_next_day_continue_watch
+      message: 首板次日仍可继续观察
+      payload:
+        state: watchlist

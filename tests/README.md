@@ -338,6 +338,9 @@ pytest astock_engine/tests/ -v --tb=short
 # 预期: 63+ passed in 32s
 ```
 
+说明: 该入口现在会自动覆盖规则术语目录与 QML 预览映射的一致性回归。
+当修改 astock_engine/rules/catalogs/trading_term_catalog.yaml 或 src/app/Qml/utils/RuleTemplatePreviewUtils.js 时，不需要额外找单独脚本，直接跑这条 pytest 即可触发校验。
+
 ### 3. 生成覆盖率报告
 ```bash
 pytest astock_engine/tests/ --cov=astock_engine --cov-report=html
@@ -371,10 +374,13 @@ pytest test_eventbus_comprehensive.py::TestEventBusBasics -v
 # 4. 业务场景 (5分钟)
 pytest test_eventbus_business_scenarios.py -v
 
-# 5. 覆盖率报告
+# 5. 规则模板预览一致性
+pytest astock_engine/tests/test_rule_config_engine.py -k preview_utils_covers_catalog_templates_without_duplicates -v
+
+# 6. 覆盖率报告
 pytest astock_engine/tests/ --cov=astock_engine --cov-report=html
 
-# 6. 性能分析
+# 7. 性能分析
 pytest astock_engine/tests/ --durations=10
 ```
 

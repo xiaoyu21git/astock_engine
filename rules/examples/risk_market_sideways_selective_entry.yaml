@@ -1,0 +1,43 @@
+version: 1
+namespace: trading.risk.market_sideways_selective_entry
+rules:
+  - id: market-sideways-selective-entry
+    name: 震荡市精选放行规则
+    stage: market
+    priority: 84
+    description: 市场处于震荡阶段且波动冲击受控时，仅放行低风险、强确认类候选。
+    tags: [market, gate, sideways_market, selective_entry]
+    when:
+      op: all
+      conditions:
+        - op: eq
+          left:
+            var: market.regime_state
+          right: sideways
+        - op: ge
+          left:
+            var: market.breadth_above_ma60_ratio
+          right: 0.38
+        - op: le
+          left:
+            var: market.breadth_above_ma60_ratio
+          right: 0.58
+        - op: le
+          left:
+            var: market.volatility_shock_score
+          right: 0.58
+        - op: le
+          left:
+            var: market.drawdown_from_recent_high
+          right: 0.10
+    then:
+      result: state_switch
+      reason_code: market_sideways_selective_entry
+      message: 市场处于震荡阶段，仅放行精选确认类新增仓位
+      payload:
+        state: selective_active
+        gate_level: sideways_selective_allow
+        allow_actions: [observe, candidate_entry]
+        focus: 仅放行低吸回补、事件催化和强确认类候选
+      state:
+        market_state: selective_active

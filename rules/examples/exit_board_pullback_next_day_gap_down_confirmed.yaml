@@ -1,0 +1,68 @@
+version: 1
+namespace: trading.exit.board_pullback_next_day_gap_down_confirmed
+rules:
+  - id: board-pullback-next-day-gap-down-confirmed-exit
+    name: 冲板回落次日低开确认退出规则
+    stage: rebalance
+    priority: 94
+    description: 冲板回落后次日低开确认弱势并失守回落支撑时，执行退出。
+    tags: [a_share_short_term, exit, board_pullback, next_day_gap_down]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_pullback_failed_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.close_below_pullback_support_ratio
+          right: 0.997
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+    then:
+      result: exit
+      reason_code: board_pullback_next_day_gap_down_confirmed_exit
+      message: 冲板回落次日低开确认，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: board-pullback-next-day-gap-down-confirmed-reduce
+    name: 冲板回落次日低开确认减仓规则
+    stage: rebalance
+    priority: 81
+    description: 冲板回落后次日低开但承接尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, board_pullback, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.board_pullback_failed_confirmed
+        - op: truthy
+          value:
+            var: position.next_day_gap_down_confirmed
+        - op: lt
+          left:
+            var: position.close_below_pullback_support_ratio
+          right: 1.0
+        - op: ge
+          left:
+            var: position.acceptance_strength_score
+          right: 52
+        - op: lt
+          left:
+            var: position.acceptance_strength_score
+          right: 64
+    then:
+      result: reduce
+      reason_code: board_pullback_next_day_gap_down_confirmed_reduce
+      message: 冲板回落次日低开走弱，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

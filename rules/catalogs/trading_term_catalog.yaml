@@ -1,0 +1,3047 @@
+version: 1
+namespace: a_share_short_term
+templates:
+  - template_id: template_entry_weak_to_strong_v1
+    display_name: 弱转强入场模板
+    file_name: entry_weak_to_strong.yaml
+    phase: signal
+    summary: 先弱后强、修复关键价位并重新放量时，输出候选入场。
+    actions:
+      - candidate_entry
+      - watch
+    tags:
+      - entry
+      - a_share_short_term
+      - repair
+
+  - template_id: template_entry_limit_up_reseal_v1
+    display_name: 炸板回封模板
+    file_name: entry_limit_up_reseal.yaml
+    phase: signal
+    summary: 炸板后重新回封且承接恢复时，输出回封打板候选。
+    actions:
+      - candidate_entry
+    tags:
+      - entry
+      - board
+      - reseal
+
+  - template_id: template_watch_abandon_leader_replaced_v1
+    display_name: 龙头被替代放弃关注模板
+    file_name: watch_abandon_leader_replaced.yaml
+    phase: signal
+    summary: 核心地位丧失、被新龙头替代或题材退潮时，取消观察。
+    actions:
+      - unwatch
+      - note
+    tags:
+      - watch
+      - abandon
+      - leader
+
+  - template_id: template_exit_scale_out_take_profit_v1
+    display_name: 分批止盈模板
+    file_name: exit_scale_out_take_profit.yaml
+    phase: rebalance
+    summary: 盈利达到目标后先减仓，趋势破坏时彻底退出。
+    actions:
+      - reduce
+      - exit
+    tags:
+      - exit
+      - take_profit
+      - scale_out
+
+  - template_id: template_risk_market_emotion_cooling_freeze_v1
+    display_name: 情绪退潮冻结模板
+    file_name: risk_market_emotion_cooling_freeze.yaml
+    phase: market
+    summary: 情绪退潮并伴随承接、回封率或题材宽度同步转弱时，切换防守冻结态。
+    actions:
+      - state_switch
+      - freeze
+    tags:
+      - risk
+      - market_state
+      - emotion_cycle
+
+  - template_id: template_risk_market_high_level_open_board_deterioration_freeze_v1
+    display_name: 高位炸板率恶化冻结模板
+    file_name: risk_market_high_level_open_board_deterioration_freeze.yaml
+    phase: market
+    summary: 高位炸板率快速抬升且回封承接塌陷时，冻结高位接力相关新开仓。
+    actions:
+      - state_switch
+      - freeze
+    tags:
+      - risk
+      - market_state
+      - open_board
+
+  - template_id: template_risk_market_reseal_rate_drop_freeze_v1
+    display_name: 回封率下滑冻结模板
+    file_name: risk_market_reseal_rate_drop_freeze.yaml
+    phase: market
+    summary: 回封成功率快速下滑且接力确认不足时，冻结追涨打板类新开仓。
+    actions:
+      - state_switch
+      - freeze
+    tags:
+      - risk
+      - market_state
+      - reseal
+
+  - template_id: template_risk_market_theme_cooling_freeze_v1
+    display_name: 题材退潮冻结模板
+    file_name: risk_market_theme_cooling_freeze.yaml
+    phase: market
+    summary: 主线题材宽度收缩且回封确认走弱时，冻结退潮主线上的新开仓。
+    actions:
+      - state_switch
+      - freeze
+    tags:
+      - risk
+      - market_state
+      - theme_breadth
+
+  - template_id: template_entry_overtake_rotation_v1
+    display_name: 卡位上位模板
+    file_name: entry_overtake_rotation.yaml
+    phase: signal
+    summary: 标的在题材内部完成卡位上位、强度反超原核心时，输出候选入场。
+    actions:
+      - candidate_entry
+    tags:
+      - entry
+      - rotation
+      - overtake
+
+  - template_id: template_entry_catch_up_breakout_v1
+    display_name: 补涨启动模板
+    file_name: entry_catch_up_breakout.yaml
+    phase: signal
+    summary: 龙头锁定后，后排补涨品种放量突破关键位时，输出候选入场。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - catch_up
+      - breakout
+
+  - template_id: template_exit_failed_rebound_engulfing_v1
+    display_name: 反包失败退出模板
+    file_name: exit_failed_rebound_engulfing.yaml
+    phase: rebalance
+    summary: 反包尝试失败且价格重新转弱时，优先退出持仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - engulfing
+      - failed_rebound
+
+  - template_id: template_exit_acceptance_breakdown_v1
+    display_name: 承接走弱退出模板
+    file_name: exit_acceptance_breakdown.yaml
+    phase: rebalance
+    summary: 承接显著走弱或回落扩大时，先减仓再视趋势损伤退出。
+    actions:
+      - reduce
+      - exit
+    tags:
+      - exit
+      - acceptance
+      - breakdown
+
+  - template_id: template_watch_high_divergence_weakening_v1
+    display_name: 高位分歧转弱模板
+    file_name: watch_high_divergence_weakening.yaml
+    phase: signal
+    summary: 高位股从强分歧走向弱分歧且核心强度下滑时，取消继续关注。
+    actions:
+      - unwatch
+      - block
+    tags:
+      - watch
+      - divergence
+      - weakening
+
+  - template_id: template_exit_broken_board_failed_rebound_v1
+    display_name: 断板反抽失败模板
+    file_name: exit_broken_board_failed_rebound.yaml
+    phase: rebalance
+    summary: 连板断板后反抽修复失败且再次回落时，优先退出持仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - board_break
+      - failed_rebound
+
+  - template_id: template_entry_emotion_reflow_repair_v1
+    display_name: 情绪修复回流模板
+    file_name: entry_emotion_reflow_repair.yaml
+    phase: signal
+    summary: 市场情绪从退潮转修复且核心题材回流时，输出修复回流候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - emotion_repair
+      - reflow
+
+  - template_id: template_entry_pullback_ma20_support_v1
+    display_name: 回踩20日线模板
+    file_name: entry_pullback_ma20_support.yaml
+    phase: signal
+    summary: 上升趋势中回踩 20 日线并重新企稳时，输出趋势延续候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - pullback
+      - ma20
+
+  - template_id: template_entry_pullback_ma20_support_candidate_v1
+    display_name: 回踩20日线候选模板
+    file_name: entry_pullback_ma20_support_candidate.yaml
+    phase: signal
+    summary: 上升趋势中回踩 20 日线并重新企稳时，仅输出趋势延续候选，不内置阻断分支。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - pullback
+      - ma20
+      - candidate_only
+
+  - template_id: template_entry_pullback_ma60_support_v1
+    display_name: 回踩60日线模板
+    file_name: entry_pullback_ma60_support.yaml
+    phase: signal
+    summary: 中期趋势中回踩 60 日线并企稳修复时，输出中继趋势候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - pullback
+      - ma60
+
+  - template_id: template_entry_pullback_ma60_support_candidate_v1
+    display_name: 回踩60日线候选模板
+    file_name: entry_pullback_ma60_support_candidate.yaml
+    phase: signal
+    summary: 中期趋势中回踩 60 日线并企稳修复时，仅输出中继趋势候选，不内置阻断分支。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - pullback
+      - ma60
+      - candidate_only
+
+  - template_id: template_entry_trend_support_near_ma_v1
+    display_name: 趋势支撑邻近候选模板
+    file_name: entry_trend_support_near_ma.yaml
+    phase: signal
+    summary: 标的贴近 20 日线或 60 日线附近运行且趋势未明显走坏时，输出趋势延续候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - trend
+      - support
+      - ma
+
+  - template_id: template_eligibility_trend_participation_guard_v1
+    display_name: 趋势参与资格过滤模板
+    file_name: eligibility_trend_participation_guard.yaml
+    phase: eligibility
+    summary: 成交活跃度、趋势斜率与均线偏离仍处于可参与区间时，允许进入后续趋势信号确认。
+    actions:
+      - pass
+    tags:
+      - eligibility
+      - liquidity
+      - trend
+      - ma
+
+  - template_id: template_watch_trend_structure_breakdown_v1
+    display_name: 趋势结构破坏阻断模板
+    file_name: watch_trend_structure_breakdown.yaml
+    phase: signal
+    summary: 标的已明显跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时，阻断继续按趋势候选开仓。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - trend
+      - breakdown
+      - veto
+
+  - template_id: template_watch_consensus_acceleration_exhaustion_v1
+    display_name: 一致加速衰竭模板
+    file_name: watch_consensus_acceleration_exhaustion.yaml
+    phase: signal
+    summary: 一致加速后出现追高拥挤与首次明显分歧时，取消继续追踪或接力关注。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - consensus
+      - exhaustion
+
+  - template_id: template_exit_floor_to_limit_failed_v1
+    display_name: 地天板失败模板
+    file_name: exit_floor_to_limit_failed.yaml
+    phase: rebalance
+    summary: 地天板修复失败且再次失守关键回封位时，优先退出或快速减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - floor_to_limit
+      - failed
+
+  - template_id: template_watch_tail_ramp_next_day_weakening_v1
+    display_name: 尾盘偷袭次日弱化模板
+    file_name: watch_tail_ramp_next_day_weakening.yaml
+    phase: signal
+    summary: 尾盘偷袭后次日未能延续强度，转为弱开弱跟随时，取消追踪与追买。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - tail_ramp
+      - next_day_weakening
+
+  - template_id: template_exit_thin_volume_rebound_failed_v1
+    display_name: 地量反抽失败模板
+    file_name: exit_thin_volume_rebound_failed.yaml
+    phase: rebalance
+    summary: 地量反抽未能确认修复且再次失守反抽支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - thin_volume
+      - rebound_failed
+
+  - template_id: template_watch_afternoon_chase_then_fade_v1
+    display_name: 午后抢筹回落模板
+    file_name: watch_afternoon_chase_then_fade.yaml
+    phase: signal
+    summary: 午后抢筹拉升后未能稳住，回落吞没午后攻击结构时，取消追踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - afternoon_chase
+      - fade
+
+  - template_id: template_watch_counter_nuke_confirmation_failed_v1
+    display_name: 反核确认失败模板
+    file_name: watch_counter_nuke_confirmation_failed.yaml
+    phase: signal
+    summary: 反核尝试后未形成有效承接和确认，回到弱势区间时，停止跟踪与抄底尝试。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - counter_nuke
+      - failed_confirmation
+
+  - template_id: template_watch_afternoon_reseal_failed_v1
+    display_name: 午后回封失败模板
+    file_name: watch_afternoon_reseal_failed.yaml
+    phase: signal
+    summary: 午后回封尝试未能站稳关键位并再次走弱时，取消继续追踪与追板。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - afternoon_reseal
+      - failed
+
+  - template_id: template_watch_first_board_next_day_weak_to_weaker_v1
+    display_name: 首板次日弱转弱模板
+    file_name: watch_first_board_next_day_weak_to_weaker.yaml
+    phase: signal
+    summary: 首板次日未能形成强延续，转为弱开弱走时，取消接力和跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - first_board
+      - weak_to_weaker
+
+  - template_id: template_exit_low_volume_false_repair_v1
+    display_name: 缩量假修复模板
+    file_name: exit_low_volume_false_repair.yaml
+    phase: rebalance
+    summary: 缩量修复未获有效确认且再次跌回修复位下方时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - low_volume
+      - false_repair
+
+  - template_id: template_watch_one_word_open_board_weakening_v1
+    display_name: 一字开板转弱模板
+    file_name: watch_one_word_open_board_weakening.yaml
+    phase: signal
+    summary: 一字板开板后未形成有效承接并重新转弱时，取消继续关注与接力。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - one_word_board
+      - weakening
+
+  - template_id: template_exit_engulfing_next_day_fade_v1
+    display_name: 反包次日冲高回落模板
+    file_name: exit_engulfing_next_day_fade.yaml
+    phase: rebalance
+    summary: 反包后次日未能延续强势，冲高回落失守承接位时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - engulfing
+      - next_day_fade
+
+  - template_id: template_exit_reseal_board_break_loss_v1
+    display_name: 回封后炸板失守模板
+    file_name: exit_reseal_board_break_loss.yaml
+    phase: rebalance
+    summary: 回封成功后再次炸板且失守关键承接位时，优先退出以防高位崩塌。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - reseal
+      - board_break
+
+  - template_id: template_exit_engulfing_first_down_day_confirmed_v1
+    display_name: 反包首阴确认模板
+    file_name: exit_engulfing_first_down_day_confirmed.yaml
+    phase: rebalance
+    summary: 反包后首个明显转弱阴线出现并确认失守承接位时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - engulfing
+      - first_down_day
+
+  - template_id: template_watch_gap_up_fade_breakdown_v1
+    display_name: 高开低走失守模板
+    file_name: watch_gap_up_fade_breakdown.yaml
+    phase: signal
+    summary: 高开后未能延续强势并跌破开盘攻击结构时，取消继续跟踪或追涨。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - gap_up
+      - fade_breakdown
+
+  - template_id: template_exit_acceleration_volume_stall_v1
+    display_name: 加速后放量滞涨模板
+    file_name: exit_acceleration_volume_stall.yaml
+    phase: rebalance
+    summary: 加速后放量但涨幅推进停滞且承接边际恶化时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - acceleration
+      - volume_stall
+
+  - template_id: template_watch_spike_fail_before_limit_v1
+    display_name: 冲高未板回落模板
+    file_name: watch_spike_fail_before_limit.yaml
+    phase: signal
+    summary: 冲高试图打板但未能封住并快速回落失守攻击位时，取消继续跟踪与追涨。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - spike_fail
+      - failed_limit
+
+  - template_id: template_exit_second_wave_repair_failed_v1
+    display_name: 二波修复失败模板
+    file_name: exit_second_wave_repair_failed.yaml
+    phase: rebalance
+    summary: 二波修复尝试失效并重新跌回突破位下方时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - second_wave
+      - repair_failed
+
+  - template_id: template_watch_intraday_break_ma_weakening_v1
+    display_name: 分时破均线弱化模板
+    file_name: watch_intraday_break_ma_weakening.yaml
+    phase: signal
+    summary: 盘中跌破分时均线且回拉失败、趋势维持率走弱时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - intraday_ma
+      - weakening
+
+  - template_id: template_exit_high_level_sideways_flush_v1
+    display_name: 高位横盘后跳水模板
+    file_name: exit_high_level_sideways_flush.yaml
+    phase: rebalance
+    summary: 高位横盘后突然跳水并失守整理支点、抛压显著抬升时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - high_level
+      - sideways_flush
+
+  - template_id: template_watch_low_volume_board_next_day_breakdown_v1
+    display_name: 缩量上板次日失守模板
+    file_name: watch_low_volume_board_next_day_breakdown.yaml
+    phase: signal
+    summary: 缩量上板后次日未能延续，弱开并失守板上承接结构时，取消继续跟踪与接力。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - low_volume_board
+      - next_day_breakdown
+
+  - template_id: template_watch_tail_repair_no_follow_through_v1
+    display_name: 尾盘抢修无延续模板
+    file_name: watch_tail_repair_no_follow_through.yaml
+    phase: signal
+    summary: 尾盘抢修后次日没有形成跟随延续并再次失守修复支点时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - tail_repair
+      - no_follow_through
+
+  - template_id: template_exit_high_volume_stall_reversal_v1
+    display_name: 高位放量滞胀转杀模板
+    file_name: exit_high_volume_stall_reversal.yaml
+    phase: rebalance
+    summary: 高位放量但价格推进停滞，随后转为明显抛压回落时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - high_volume
+      - stall_reversal
+
+  - template_id: template_exit_rebound_over_previous_high_failed_v1
+    display_name: 反抽过前高失败模板
+    file_name: exit_rebound_over_previous_high_failed.yaml
+    phase: rebalance
+    summary: 反抽尝试突破前高但未站稳并重新失守突破位时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - rebound
+      - previous_high_failed
+
+  - template_id: template_watch_afternoon_reflow_next_day_below_expectation_v1
+    display_name: 午后回流次日低于预期模板
+    file_name: watch_afternoon_reflow_next_day_below_expectation.yaml
+    phase: signal
+    summary: 午后回流后次日未形成应有延续，弱开弱跟随并失守回流支点时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - afternoon_reflow
+      - below_expectation
+
+  - template_id: template_exit_board_fade_tail_breakdown_v1
+    display_name: 炸板回落尾盘失守模板
+    file_name: exit_board_fade_tail_breakdown.yaml
+    phase: rebalance
+    summary: 炸板后持续回落并在尾盘失守关键承接位时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - board_break
+      - tail_breakdown
+
+  - template_id: template_exit_weak_repair_next_day_gap_down_kill_v1
+    display_name: 弱修复次日低开再杀模板
+    file_name: exit_weak_repair_next_day_gap_down_kill.yaml
+    phase: rebalance
+    summary: 弱修复次日低开且继续走弱、再次失守修复位时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - weak_repair
+      - gap_down_kill
+
+  - template_id: template_watch_sector_reflow_symbol_lagging_v1
+    display_name: 板块回流但个股掉队模板
+    file_name: watch_sector_reflow_symbol_lagging.yaml
+    phase: signal
+    summary: 板块整体回流但个股未形成跟随、强度掉队并失守参考位时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - sector_reflow
+      - symbol_lagging
+
+  - template_id: template_watch_gap_up_instant_limit_acceptance_collapse_v1
+    display_name: 高开秒板后承接塌陷模板
+    file_name: watch_gap_up_instant_limit_acceptance_collapse.yaml
+    phase: signal
+    summary: 高开秒板后快速开板、承接塌陷并失守关键支点时，取消继续跟踪与追板。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - gap_up
+      - instant_limit
+
+  - template_id: template_watch_low_level_first_board_no_premium_v1
+    display_name: 低位首板隔日无溢价模板
+    file_name: watch_low_level_first_board_no_premium.yaml
+    phase: signal
+    summary: 低位首板后次日没有形成应有溢价并失守首板支撑时，取消继续跟踪与接力。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - low_level_first_board
+      - no_premium
+
+  - template_id: template_watch_sector_divergence_leader_follower_split_v1
+    display_name: 板块分歧时核心与跟风分化模板
+    file_name: watch_sector_divergence_leader_follower_split.yaml
+    phase: signal
+    summary: 板块分歧时核心与跟风强度明显拉开、跟风失守参考位时，取消继续跟踪弱侧个股。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - sector_divergence
+      - leader_follower_split
+
+  - template_id: template_watch_one_word_turnover_acceptance_decay_v1
+    display_name: 一字换手后承接衰减模板
+    file_name: watch_one_word_turnover_acceptance_decay.yaml
+    phase: signal
+    summary: 一字换手后承接快速衰减并失守换手支点时，取消继续跟踪与接力。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - one_word_turnover
+      - acceptance_decay
+
+  - template_id: template_exit_board_pullback_next_day_gap_down_confirmed_v1
+    display_name: 冲板回落次日低开确认模板
+    file_name: exit_board_pullback_next_day_gap_down_confirmed.yaml
+    phase: rebalance
+    summary: 冲板回落后次日低开确认弱势并失守回落支撑时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - board_pullback
+      - next_day_gap_down
+
+  - template_id: template_watch_sector_repair_leader_only_followers_stall_v1
+    display_name: 板块修复时核心独强后排失速模板
+    file_name: watch_sector_repair_leader_only_followers_stall.yaml
+    phase: signal
+    summary: 板块修复时仅核心独强、后排跟随失速并失守参考位时，取消继续跟踪弱侧个股。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - sector_repair
+      - leader_only
+
+  - template_id: template_exit_high_level_board_break_afternoon_second_kill_v1
+    display_name: 高位炸板后午后再杀模板
+    file_name: exit_high_level_board_break_afternoon_second_kill.yaml
+    phase: rebalance
+    summary: 高位炸板后午后再次转杀并失守关键支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - high_level_board_break
+      - afternoon_second_kill
+
+  - template_id: template_exit_weak_to_strong_fail_consensus_take_profit_v1
+    display_name: 弱转强失败转一致兑现模板
+    file_name: exit_weak_to_strong_fail_consensus_take_profit.yaml
+    phase: rebalance
+    summary: 弱转强失败后情绪一致转兑现并失守修复支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - weak_to_strong_fail
+      - consensus_take_profit
+
+  - template_id: template_watch_repair_market_core_secondary_switch_v1
+    display_name: 修复行情里核心与次核心切换模板
+    file_name: watch_repair_market_core_secondary_switch.yaml
+    phase: signal
+    summary: 修复行情中原核心失去主导、次核心完成切换并失守参考位时，取消继续跟踪旧核心。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - repair_market
+      - core_secondary_switch
+
+  - template_id: template_watch_consensus_repair_next_day_acceptance_vanish_v1
+    display_name: 一致修复次日承接消失模板
+    file_name: watch_consensus_repair_next_day_acceptance_vanish.yaml
+    phase: signal
+    summary: 一致修复后次日承接迅速消失并失守修复支点时，取消继续跟踪与追涨。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - consensus_repair
+      - acceptance_vanish
+
+  - template_id: template_exit_accelerated_catch_up_afternoon_blowup_v1
+    display_name: 加速补涨午后炸裂模板
+    file_name: exit_accelerated_catch_up_afternoon_blowup.yaml
+    phase: rebalance
+    summary: 加速补涨后午后炸裂并失守关键支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - accelerated_catch_up
+      - afternoon_blowup
+
+  - template_id: template_watch_cooling_end_counter_nuke_failed_v1
+    display_name: 退潮末端反核失败模板
+    file_name: watch_cooling_end_counter_nuke_failed.yaml
+    phase: signal
+    summary: 退潮末端尝试反核但承接失败并重新失守弱势区时，取消继续跟踪与抄底预期。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - cooling_end
+      - counter_nuke_failed
+
+  - template_id: template_exit_engulfing_board_blowup_take_profit_v1
+    display_name: 反包冲板后炸裂兑现模板
+    file_name: exit_engulfing_board_blowup_take_profit.yaml
+    phase: rebalance
+    summary: 反包后冲板失败并炸裂兑现、失守关键支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - engulfing_board
+      - blowup_take_profit
+
+  - template_id: template_watch_emotion_repair_second_divergence_failed_v1
+    display_name: 情绪修复二次分歧失败模板
+    file_name: watch_emotion_repair_second_divergence_failed.yaml
+    phase: signal
+    summary: 情绪修复后再遇二次分歧且修复承接失败时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - emotion_repair
+      - second_divergence_failed
+
+  - template_id: template_watch_cooling_tail_low_level_first_board_follow_insufficient_v1
+    display_name: 退潮尾声低位首板跟随不足模板
+    file_name: watch_cooling_tail_low_level_first_board_follow_insufficient.yaml
+    phase: signal
+    summary: 退潮尾声低位首板没有形成有效跟随并失守支撑时，取消继续跟踪与接力。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - cooling_tail
+      - low_level_first_board
+
+  - template_id: template_watch_consensus_reflow_tail_weakening_v1
+    display_name: 一致回流后尾盘走弱模板
+    file_name: watch_consensus_reflow_tail_weakening.yaml
+    phase: signal
+    summary: 一致回流后尾盘承接转弱并失守回流支点时，取消继续跟踪与追涨。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - consensus_reflow
+      - tail_weakening
+
+  - template_id: template_watch_overtake_success_next_day_no_strengthening_v1
+    display_name: 卡位成功次日不加强模板
+    file_name: watch_overtake_success_next_day_no_strengthening.yaml
+    phase: signal
+    summary: 卡位成功后次日未能继续增强并失守卡位支点时，取消继续跟踪。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - overtake_success
+      - no_strengthening
+
+  - template_id: template_exit_cooling_mid_weak_repair_rebreak_v1
+    display_name: 退潮中继的弱修复再破位模板
+    file_name: exit_cooling_mid_weak_repair_rebreak.yaml
+    phase: rebalance
+    summary: 退潮中继阶段弱修复后再次破位并失守修复支点时，优先退出或减仓。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - cooling_mid
+      - weak_repair_rebreak
+
+  - template_id: template_watch_high_level_blowup_next_day_thin_volume_drift_v1
+    display_name: 高位炸板次日缩量阴跌模板
+    file_name: watch_high_level_blowup_next_day_thin_volume_drift.yaml
+    phase: signal
+    summary: 高位炸板后次日缩量阴跌并失守支撑时，取消继续跟踪与低吸预期。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - high_level_blowup
+      - thin_volume_drift
+
+  - template_id: template_watch_emotion_repair_afternoon_reversal_kill_v1
+    display_name: 情绪修复后午后反杀模板
+    file_name: watch_emotion_repair_afternoon_reversal_kill.yaml
+    phase: signal
+    summary: 情绪修复日午后反杀并失守修复支点时，取消继续跟踪与追涨。
+    actions:
+      - block
+      - unwatch
+    tags:
+      - watch
+      - emotion_repair
+      - afternoon_reversal_kill
+
+  - template_id: template_exit_weak_to_strong_failed_gap_down_no_acceptance_v1
+    display_name: 弱转强失败后低开无承接模板
+    file_name: exit_weak_to_strong_failed_gap_down_no_acceptance.yaml
+    phase: rebalance
+    summary: 弱转强失败后次日低开且承接不足时，优先退出或减仓防守。
+    actions:
+      - exit
+      - reduce
+    tags:
+      - exit
+      - weak_to_strong_fail
+      - gap_down_no_acceptance
+
+  - template_id: template_risk_market_emotion_repair_allow_entry_v1
+    display_name: 情绪修复放行模板
+    file_name: risk_market_emotion_repair_allow_entry.yaml
+    phase: market
+    summary: 情绪修复且高位承接、回封率、题材宽度同步回暖时，放行新增仓位。
+    actions:
+      - state_switch
+    tags:
+      - risk
+      - market_gate
+      - emotion_repair
+
+  - template_id: template_risk_market_reseal_recovery_allow_entry_v1
+    display_name: 回封率修复放行模板
+    file_name: risk_market_reseal_recovery_allow_entry.yaml
+    phase: market
+    summary: 回封成功率修复且高位开板率回落时，放行精选新增仓位。
+    actions:
+      - state_switch
+    tags:
+      - risk
+      - market_gate
+      - reseal_recovery
+
+  - template_id: template_entry_midterm_platform_breakout_v1
+    display_name: 中期平台突破模板
+    file_name: entry_midterm_platform_breakout.yaml
+    phase: signal
+    summary: 中期平台放量突破并保持趋势斜率向上时，输出中线突破候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - mid_term
+      - platform_breakout
+
+  - template_id: template_entry_long_term_yearline_reclaim_v1
+    display_name: 年线收复回踩模板
+    file_name: entry_long_term_yearline_reclaim.yaml
+    phase: signal
+    summary: 长期均线被重新收复且长期趋势恢复向上时，输出长线趋势候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - long_term
+      - yearline
+
+  - template_id: template_exit_long_term_ma120_break_v1
+    display_name: 跌破120日线模板
+    file_name: exit_long_term_ma120_break.yaml
+    phase: rebalance
+    summary: 长线趋势跌破 120 日线并伴随回撤扩大时，优先减仓或退出。
+    actions:
+      - reduce
+      - exit
+    tags:
+      - exit
+      - long_term
+      - ma120
+
+  - template_id: template_entry_event_earnings_surprise_breakout_v1
+    display_name: 业绩超预期突破模板
+    file_name: entry_event_earnings_surprise_breakout.yaml
+    phase: signal
+    summary: 业绩明显超预期且事件窗口放量突破时，输出事件驱动候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - event_driven
+      - earnings
+
+  - template_id: template_entry_hft_orderflow_reclaim_v1
+    display_name: 盘口扫单回补模板
+    file_name: entry_hft_orderflow_reclaim.yaml
+    phase: signal
+    summary: 盘口扫单后迅速回补、买方承接明显时，输出高频候选。
+    actions:
+      - candidate_entry
+      - score
+    tags:
+      - entry
+      - high_frequency
+      - orderflow
+
+  - template_id: template_risk_market_bull_trend_allow_entry_v1
+    display_name: 牛市趋势放行模板
+    file_name: risk_market_bull_trend_allow_entry.yaml
+    phase: market
+    summary: 市场处于牛市趋势阶段且广度、趋势强度同步改善时，放行趋势类新增仓位。
+    actions:
+      - state_switch
+    tags:
+      - risk
+      - market_gate
+      - bull_market
+
+  - template_id: template_risk_market_trend_neutral_allow_entry_v1
+    display_name: 趋势中性环境放行模板
+    file_name: risk_market_trend_neutral_allow_entry.yaml
+    phase: market
+    summary: 市场未进入熊市且广度、趋势强度与回撤压力仍在可承受区间时，允许日线趋势策略继续筛选新增仓位。
+    actions:
+      - state_switch
+    tags:
+      - risk
+      - market_gate
+      - neutral_market
+
+  - template_id: template_risk_market_sideways_selective_entry_v1
+    display_name: 震荡市精选放行模板
+    file_name: risk_market_sideways_selective_entry.yaml
+    phase: market
+    summary: 市场处于震荡阶段且波动受控时，仅放行精选确认类新增仓位。
+    actions:
+      - state_switch
+    tags:
+      - risk
+      - market_gate
+      - sideways_market
+
+  - template_id: template_risk_market_bear_freeze_entry_v1
+    display_name: 熊市冻结新开仓模板
+    file_name: risk_market_bear_freeze_entry.yaml
+    phase: market
+    summary: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位。
+    actions:
+      - freeze
+    tags:
+      - risk
+      - market_risk
+      - bear_market
+
+terms:
+  - term_id: weak_to_strong
+    display_name: 弱转强
+    aliases:
+      - 弱转强
+      - 转强修复
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 标的先出现走弱，再通过价格修复和量能恢复重新回到进攻状态。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.previous_weakness_confirmed
+      - candidate.reclaim_reference_ratio
+      - candidate.reclaim_reference_strength
+      - candidate.volume_ratio_to_5d_avg
+      - market.emotion_cycle
+    default_template_id: template_entry_weak_to_strong_v1
+    template_ids:
+      - template_entry_weak_to_strong_v1
+
+  - term_id: limit_up_reseal
+    display_name: 炸板回封
+    aliases:
+      - 炸板回封
+      - 回封打板
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 涨停打开后重新回封，说明承接恢复且做多意愿重新占优。
+    recommended_rule_types:
+      - event
+      - timer
+      - comparison
+    recommended_actions:
+      - candidate_entry
+      - open
+    required_features:
+      - candidate.limit_up_opened
+      - candidate.reseal_confirmed
+      - candidate.open_board_duration_seconds
+      - candidate.volume_ratio_to_intraday_avg
+      - market.emotion_cycle
+    default_template_id: template_entry_limit_up_reseal_v1
+    template_ids:
+      - template_entry_limit_up_reseal_v1
+
+  - term_id: leader_replaced_abandon_watch
+    display_name: 龙头被替代放弃关注
+    aliases:
+      - 龙头被替代
+      - 被卡位放弃
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 原观察标的失去核心地位，被更强龙头替代或题材热度退潮，应取消继续关注。
+    recommended_rule_types:
+      - event
+      - rank
+      - state
+    recommended_actions:
+      - unwatch
+      - note
+    required_features:
+      - candidate.leader_replaced
+      - candidate.theme_heat_rank
+      - candidate.relative_core_rank
+      - market.emotion_cycle
+    default_template_id: template_watch_abandon_leader_replaced_v1
+    template_ids:
+      - template_watch_abandon_leader_replaced_v1
+
+  - term_id: scale_out_take_profit
+    display_name: 分批止盈
+    aliases:
+      - 分批止盈
+      - 兑现利润
+    domain: general_trading
+    category: exit_management
+    description: 持仓获利后先部分兑现，若趋势继续破坏再执行完全退出。
+    recommended_rule_types:
+      - comparison
+      - sequence
+      - state
+    recommended_actions:
+      - reduce
+      - exit
+      - cooldown
+    required_features:
+      - position.unrealized_return_percent
+      - position.take_profit_stage
+      - position.trend_damage_confirmed
+      - market.emotion_cycle
+    default_template_id: template_exit_scale_out_take_profit_v1
+    template_ids:
+      - template_exit_scale_out_take_profit_v1
+
+  - term_id: market_emotion_cooling_freeze
+    display_name: 情绪退潮冻结新开仓
+    aliases:
+      - 情绪退潮
+      - 高位退潮冻结
+    domain: a_share_short_term
+    category: market_risk
+    description: 市场情绪从修复切入退潮，并伴随高位承接、回封率或题材宽度同步恶化时，系统切换到防守冻结态。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - freeze
+      - state_switch
+      - halt
+    required_features:
+      - market.emotion_cycle
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_emotion_cooling_freeze_v1
+    template_ids:
+      - template_risk_market_emotion_cooling_freeze_v1
+
+  - term_id: market_high_level_open_board_deterioration_freeze
+    display_name: 高位炸板率恶化冻结新开仓
+    aliases:
+      - 高位炸板率恶化
+      - 炸板率恶化冻结
+      - 高位炸板恶化冻结
+    domain: a_share_short_term
+    category: market_risk
+    description: 高位炸板率快速抬升且回封稳定性塌陷时，系统进入强防守冻结态，优先回避高位接力。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - freeze
+      - state_switch
+      - halt
+    required_features:
+      - market.emotion_cycle
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_high_level_open_board_deterioration_freeze_v1
+    template_ids:
+      - template_risk_market_high_level_open_board_deterioration_freeze_v1
+
+  - term_id: market_reseal_rate_drop_freeze
+    display_name: 回封率下滑冻结新开仓
+    aliases:
+      - 回封率下滑
+      - 回封率恶化冻结
+      - 回封失败增多冻结
+    domain: a_share_short_term
+    category: market_risk
+    description: 连板回封率持续下滑、接力确认不足且高位分歧抬升时，系统进入冻结态，暂停追涨打板。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - freeze
+      - state_switch
+      - halt
+    required_features:
+      - market.emotion_cycle
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_reseal_rate_drop_freeze_v1
+    template_ids:
+      - template_risk_market_reseal_rate_drop_freeze_v1
+
+  - term_id: market_theme_cooling_freeze
+    display_name: 题材退潮冻结新开仓
+    aliases:
+      - 题材退潮
+      - 主线退潮冻结
+      - 板块退潮冻结
+    domain: a_share_short_term
+    category: market_risk
+    description: 主线题材宽度明显收缩且回封确认同步转弱时，系统进入冻结态，避免继续追逐退潮主线。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - freeze
+      - state_switch
+      - halt
+    required_features:
+      - market.emotion_cycle
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_theme_cooling_freeze_v1
+    template_ids:
+      - template_risk_market_theme_cooling_freeze_v1
+
+  - term_id: overtake_rotation
+    display_name: 卡位上位
+    aliases:
+      - 卡位
+      - 卡位上位
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 原核心走弱时，新的强势标的通过强度反超和情绪承接完成卡位上位。
+    recommended_rule_types:
+      - event
+      - rank
+      - comparison
+    recommended_actions:
+      - candidate_entry
+      - open
+      - tag
+    required_features:
+      - candidate.overtake_signal_confirmed
+      - candidate.relative_core_rank
+      - candidate.relative_core_strength_score
+      - market.emotion_cycle
+    default_template_id: template_entry_overtake_rotation_v1
+    template_ids:
+      - template_entry_overtake_rotation_v1
+
+  - term_id: catch_up_breakout
+    display_name: 补涨启动
+    aliases:
+      - 补涨
+      - 补涨启动
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 龙头锁定后，后排补涨标的通过突破关键位和量能放大完成启动。
+    recommended_rule_types:
+      - comparison
+      - rank
+      - state
+    recommended_actions:
+      - candidate_entry
+      - score
+      - open
+    required_features:
+      - candidate.theme_leader_locked
+      - candidate.lagging_return_percent
+      - candidate.breakout_neckline_ratio
+      - candidate.theme_heat_rank
+      - market.theme_breadth
+    default_template_id: template_entry_catch_up_breakout_v1
+    template_ids:
+      - template_entry_catch_up_breakout_v1
+
+  - term_id: failed_rebound_engulfing
+    display_name: 反包失败退出
+    aliases:
+      - 反包失败
+      - 反包失败退出
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 反包尝试失败后重新转弱，意味着短线修复逻辑失效，应主动退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.failed_engulfing_confirmed
+      - position.acceptance_strength_score
+      - position.intraday_pullback_percent
+      - candidate.volume_ratio_to_5d_avg
+    default_template_id: template_exit_failed_rebound_engulfing_v1
+    template_ids:
+      - template_exit_failed_rebound_engulfing_v1
+
+  - term_id: acceptance_breakdown_exit
+    display_name: 承接走弱退出
+    aliases:
+      - 承接走弱
+      - 承接不足退出
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 买盘承接明显减弱且回落扩大时，应先减仓并在趋势损伤后退出。
+    recommended_rule_types:
+      - comparison
+      - state
+      - event
+    recommended_actions:
+      - reduce
+      - exit
+      - warn
+    required_features:
+      - position.acceptance_strength_score
+      - position.intraday_pullback_percent
+      - position.trend_damage_confirmed
+      - candidate.volume_ratio_to_5d_avg
+    default_template_id: template_exit_acceptance_breakdown_v1
+    template_ids:
+      - template_exit_acceptance_breakdown_v1
+
+  - term_id: high_divergence_weakening
+    display_name: 高位分歧转弱
+    aliases:
+      - 高位分歧转弱
+      - 高位走弱
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 高位强势股从可承受分歧转成弱分歧，说明资金承接开始明显衰减，应退出观察或进攻名单。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - unwatch
+      - block
+      - warn
+    required_features:
+      - candidate.high_divergence_confirmed
+      - candidate.relative_core_strength_score
+      - candidate.close_below_reference_ratio
+      - market.high_level_divergence_rate
+    default_template_id: template_watch_high_divergence_weakening_v1
+    template_ids:
+      - template_watch_high_divergence_weakening_v1
+
+  - term_id: broken_board_failed_rebound
+    display_name: 断板反抽失败
+    aliases:
+      - 断板反抽失败
+      - 断板修复失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 连板断板后尝试反抽修复但未能站回关键位，且再次转弱时应主动退出。
+    recommended_rule_types:
+      - event
+      - sequence
+      - comparison
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.board_break_confirmed
+      - position.rebound_attempt_failed
+      - position.close_below_intraday_reclaim_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_broken_board_failed_rebound_v1
+    template_ids:
+      - template_exit_broken_board_failed_rebound_v1
+
+  - term_id: emotion_reflow_repair
+    display_name: 情绪修复回流
+    aliases:
+      - 情绪修复回流
+      - 修复回流
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 市场从退潮进入修复，核心题材重新获得资金回流时，优先关注前排修复品种。
+    recommended_rule_types:
+      - state
+      - rank
+      - comparison
+    recommended_actions:
+      - candidate_entry
+      - score
+      - open
+    required_features:
+      - market.repair_reflow_confirmed
+      - market.core_theme_return_rate
+      - candidate.core_theme_reflow_rank
+      - candidate.early_repair_strength_score
+      - candidate.breakout_after_repair_ratio
+    default_template_id: template_entry_emotion_reflow_repair_v1
+    template_ids:
+      - template_entry_emotion_reflow_repair_v1
+
+  - term_id: pullback_ma20_support
+    display_name: 回踩20日线
+    aliases:
+      - 回踩20日线
+      - 20日线回踩
+      - 回踩MA20
+      - MA20回踩
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 标的处于上升趋势中，回踩 20 日线后止跌企稳并重新获得承接，适合作为趋势延续型低吸候选。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.pullback_ma20_support_confirmed
+      - candidate.close_to_ma20_ratio
+      - candidate.ma20_trend_slope
+      - market.trend_pullback_rebound_rate
+    default_template_id: template_entry_pullback_ma20_support_candidate_v1
+    template_ids:
+      - template_entry_pullback_ma20_support_candidate_v1
+      - template_entry_pullback_ma20_support_v1
+
+  - term_id: pullback_ma60_support
+    display_name: 回踩60日线
+    aliases:
+      - 回踩60日线
+      - 60日线回踩
+      - 回踩MA60
+      - MA60回踩
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 标的处于中期趋势中，回踩 60 日线后止跌企稳并重新恢复趋势，适合作为中继趋势候选。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.pullback_ma60_support_confirmed
+      - candidate.close_to_ma60_ratio
+      - candidate.ma60_trend_slope
+      - market.trend_pullback_rebound_rate
+    default_template_id: template_entry_pullback_ma60_support_candidate_v1
+    template_ids:
+      - template_entry_pullback_ma60_support_candidate_v1
+      - template_entry_pullback_ma60_support_v1
+
+  - term_id: trend_support_near_ma
+    display_name: 趋势支撑邻近候选
+    aliases:
+      - 趋势支撑邻近
+      - 贴近均线趋势候选
+      - 近均线趋势延续
+    domain: a_share_short_term
+    category: entry_pattern
+    description: 标的贴近 20 日线或 60 日线附近运行且趋势未明显走坏时，可作为更宽的趋势延续候选。
+    recommended_rule_types:
+      - comparison
+      - state
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.close_to_ma20_ratio
+      - candidate.ma20_trend_slope
+      - candidate.close_to_ma60_ratio
+      - candidate.ma60_trend_slope
+      - market.trend_pullback_rebound_rate
+    default_template_id: template_entry_trend_support_near_ma_v1
+    template_ids:
+      - template_entry_trend_support_near_ma_v1
+
+  - term_id: trend_participation_guard
+    display_name: 趋势参与资格过滤
+    aliases:
+      - 趋势参与过滤
+      - 趋势资格过滤
+      - 趋势基础过滤
+    domain: a_share_short_term
+    category: eligibility_filter
+    description: 用成交活跃度、均线偏离和趋势斜率过滤掉流动性不足、明显失速或过度失真的趋势候选。
+    recommended_rule_types:
+      - comparison
+      - state
+    recommended_actions:
+      - pass
+      - candidate_entry
+      - open
+    required_features:
+      - candidate.volume_ratio_to_5d_avg
+      - candidate.close_to_ma20_ratio
+      - candidate.close_to_ma60_ratio
+      - candidate.ma20_trend_slope
+      - candidate.ma60_trend_slope
+    default_template_id: template_eligibility_trend_participation_guard_v1
+    template_ids:
+      - template_eligibility_trend_participation_guard_v1
+
+  - term_id: trend_structure_breakdown_watch
+    display_name: 趋势结构破坏阻断
+    aliases:
+      - 趋势结构破坏
+      - 趋势失守阻断
+      - 趋势转弱否决
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 标的已明显跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时，属于趋势候选的反例阻断条件。
+    recommended_rule_types:
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.volume_ratio_to_5d_avg
+      - candidate.close_to_ma20_ratio
+      - candidate.close_to_ma60_ratio
+      - candidate.ma20_trend_slope
+      - candidate.ma60_trend_slope
+    default_template_id: template_watch_trend_structure_breakdown_v1
+    template_ids:
+      - template_watch_trend_structure_breakdown_v1
+
+  - term_id: consensus_acceleration_exhaustion
+    display_name: 一致加速衰竭
+    aliases:
+      - 一致加速衰竭
+      - 一致加速后衰竭
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 强一致加速后追高拥挤、承接边际减弱并出现首次明显分歧时，属于高风险衰竭信号。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.consensus_acceleration_confirmed
+      - candidate.intraday_chase_saturation_score
+      - candidate.first_divergence_pullback_ratio
+      - market.high_consensus_collapse_rate
+    default_template_id: template_watch_consensus_acceleration_exhaustion_v1
+    template_ids:
+      - template_watch_consensus_acceleration_exhaustion_v1
+
+  - term_id: floor_to_limit_failed
+    display_name: 地天板失败
+    aliases:
+      - 地天板失败
+      - 地天修复失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 地天板尝试未能稳住封板或关键回封位，通常意味着修复资金承接不足，应快速收缩风险。
+    recommended_rule_types:
+      - event
+      - sequence
+      - comparison
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.floor_to_limit_attempted
+      - position.limit_reseal_failed
+      - position.close_below_limit_reclaim_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_floor_to_limit_failed_v1
+    template_ids:
+      - template_exit_floor_to_limit_failed_v1
+
+  - term_id: tail_ramp_next_day_weakening
+    display_name: 尾盘偷袭次日弱化
+    aliases:
+      - 尾盘偷袭次日弱化
+      - 尾盘拉升次日弱化
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 尾盘偷袭后次日没有形成强延续，表现为弱开、弱量、红转黑失败或跟随率不足，通常不应再追。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.tail_ramp_attack_confirmed
+      - candidate.next_day_open_strength_ratio
+      - candidate.next_day_volume_follow_ratio
+      - candidate.next_day_red_to_black_failed
+      - market.tail_attack_follow_through_rate
+    default_template_id: template_watch_tail_ramp_next_day_weakening_v1
+    template_ids:
+      - template_watch_tail_ramp_next_day_weakening_v1
+
+  - term_id: thin_volume_rebound_failed
+    display_name: 地量反抽失败
+    aliases:
+      - 地量反抽失败
+      - 地量修复失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 地量环境下的反抽修复未能确认，说明修复质量不足，再次转弱时应主动收缩风险。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.thin_volume_rebound_attempted
+      - position.rebound_confirmation_failed
+      - position.close_below_rebound_pivot_ratio
+      - position.volume_recovery_ratio
+    default_template_id: template_exit_thin_volume_rebound_failed_v1
+    template_ids:
+      - template_exit_thin_volume_rebound_failed_v1
+
+  - term_id: afternoon_chase_then_fade
+    display_name: 午后抢筹回落
+    aliases:
+      - 午后抢筹回落
+      - 午后拉升回落
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 午后抢筹拉升后未能稳住结构，回落吞没攻击区间时，通常不应继续追踪或追买。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.afternoon_chase_confirmed
+      - candidate.afternoon_fade_drawdown_ratio
+      - candidate.close_below_afternoon_attack_ratio
+      - market.afternoon_follow_through_rate
+    default_template_id: template_watch_afternoon_chase_then_fade_v1
+    template_ids:
+      - template_watch_afternoon_chase_then_fade_v1
+
+  - term_id: counter_nuke_confirmation_failed
+    display_name: 反核确认失败
+    aliases:
+      - 反核确认失败
+      - 反核失败
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 深水反核尝试后未能形成有效承接和确认，再次回到弱势区间时，不应继续跟踪抄底。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.counter_nuke_attempted
+      - candidate.counter_nuke_confirmation_ratio
+      - candidate.bid_acceptance_score
+      - market.counter_nuke_success_rate
+    default_template_id: template_watch_counter_nuke_confirmation_failed_v1
+    template_ids:
+      - template_watch_counter_nuke_confirmation_failed_v1
+
+  - term_id: afternoon_reseal_failed
+    display_name: 午后回封失败
+    aliases:
+      - 午后回封失败
+      - 午后回封未成
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 午后回封尝试未能稳住关键回封位且重新转弱时，通常不应继续追板或追踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.afternoon_reseal_attempted
+      - candidate.reseal_hold_minutes
+      - candidate.close_below_reseal_pivot_ratio
+      - market.afternoon_reseal_success_rate
+    default_template_id: template_watch_afternoon_reseal_failed_v1
+    template_ids:
+      - template_watch_afternoon_reseal_failed_v1
+
+  - term_id: first_board_next_day_weak_to_weaker
+    display_name: 首板次日弱转弱
+    aliases:
+      - 首板次日弱转弱
+      - 首板次日走弱
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 首板后次日未能形成强势承接，表现为弱开、弱跟随并继续走弱，通常应停止接力关注。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.first_board_yesterday_confirmed
+      - candidate.next_day_open_below_expected_ratio
+      - candidate.next_day_follow_through_strength_score
+      - candidate.next_day_weak_to_weaker_confirmed
+    default_template_id: template_watch_first_board_next_day_weak_to_weaker_v1
+    template_ids:
+      - template_watch_first_board_next_day_weak_to_weaker_v1
+
+  - term_id: low_volume_false_repair
+    display_name: 缩量假修复
+    aliases:
+      - 缩量假修复
+      - 缩量修复失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 修复阶段量能恢复不足且价格再次跌回修复位下方，说明修复是伪修复，应主动收缩风险。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.low_volume_repair_attempted
+      - position.repair_confirmation_failed
+      - position.repair_breakout_ratio
+      - position.volume_recovery_ratio
+    default_template_id: template_exit_low_volume_false_repair_v1
+    template_ids:
+      - template_exit_low_volume_false_repair_v1
+
+  - term_id: one_word_open_board_weakening
+    display_name: 一字开板转弱
+    aliases:
+      - 一字开板转弱
+      - 一字开板走弱
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 一字板开板后未能稳住承接，重新回到弱势区间，通常意味着高位接力风险显著上升。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.one_word_board_yesterday_confirmed
+      - candidate.open_board_today_confirmed
+      - candidate.open_board_acceptance_score
+      - candidate.close_below_open_board_pivot_ratio
+    default_template_id: template_watch_one_word_open_board_weakening_v1
+    template_ids:
+      - template_watch_one_word_open_board_weakening_v1
+
+  - term_id: engulfing_next_day_fade
+    display_name: 反包次日冲高回落
+    aliases:
+      - 反包次日冲高回落
+      - 反包次日回落
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 反包后次日不能延续强势，冲高后快速回落并失守承接位，说明修复延续失败。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.engulfing_yesterday_confirmed
+      - position.next_day_spike_then_fade_confirmed
+      - position.close_below_engulfing_support_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_engulfing_next_day_fade_v1
+    template_ids:
+      - template_exit_engulfing_next_day_fade_v1
+
+  - term_id: reseal_board_break_loss
+    display_name: 回封后炸板失守
+    aliases:
+      - 回封后炸板失守
+      - 回封后再炸板
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 回封后再次炸板且失守关键承接位，往往代表高位承接崩坏，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - exit
+      - reduce
+      - warn
+    required_features:
+      - position.reseal_success_confirmed
+      - position.second_board_break_confirmed
+      - position.close_below_reseal_support_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_reseal_board_break_loss_v1
+    template_ids:
+      - template_exit_reseal_board_break_loss_v1
+
+  - term_id: engulfing_first_down_day_confirmed
+    display_name: 反包首阴确认
+    aliases:
+      - 反包首阴确认
+      - 反包首阴
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 反包修复后的首个明显转弱阴线出现，并确认失守关键承接位，通常代表修复结束，应主动退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.engulfing_yesterday_confirmed
+      - position.first_down_day_confirmed
+      - position.close_below_engulfing_support_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_engulfing_first_down_day_confirmed_v1
+    template_ids:
+      - template_exit_engulfing_first_down_day_confirmed_v1
+
+  - term_id: gap_up_fade_breakdown
+    display_name: 高开低走失守
+    aliases:
+      - 高开低走失守
+      - 高开回落失守
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 高开后未能形成有效延续，并在盘中跌破开盘攻击位或回到弱势区间，通常不应再追涨。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.gap_up_open_confirmed
+      - candidate.intraday_fade_from_open_ratio
+      - candidate.close_below_gap_attack_ratio
+      - market.gap_up_follow_through_rate
+    default_template_id: template_watch_gap_up_fade_breakdown_v1
+    template_ids:
+      - template_watch_gap_up_fade_breakdown_v1
+
+  - term_id: acceleration_volume_stall
+    display_name: 加速后放量滞涨
+    aliases:
+      - 加速后放量滞涨
+      - 放量滞涨衰竭
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 个股加速后继续放量，但价格推进停滞甚至回落，说明冲高资金兑现增强，应优先收缩风险。
+    recommended_rule_types:
+      - comparison
+      - event
+      - state
+    recommended_actions:
+      - exit
+      - reduce
+      - warn
+    required_features:
+      - position.acceleration_phase_confirmed
+      - position.volume_expansion_ratio
+      - position.price_progress_stall_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_acceleration_volume_stall_v1
+    template_ids:
+      - template_exit_acceleration_volume_stall_v1
+
+  - term_id: spike_fail_before_limit_pullback
+    display_name: 冲高未板回落
+    aliases:
+      - 冲高未板回落
+      - 冲高未板
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 盘中冲高试图打板但未能封住，随后快速回落并失守攻击位，通常不应继续追涨或保留强跟踪预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.intraday_spike_attack_confirmed
+      - candidate.failed_to_limit_board_confirmed
+      - candidate.pullback_from_intraday_high_ratio
+      - candidate.close_below_intraday_attack_ratio
+      - market.spike_to_limit_success_rate
+    default_template_id: template_watch_spike_fail_before_limit_v1
+    template_ids:
+      - template_watch_spike_fail_before_limit_v1
+
+  - term_id: second_wave_repair_failed
+    display_name: 二波修复失败
+    aliases:
+      - 二波修复失败
+      - 二波失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 首次修复后尝试走二波，但突破和承接都没有延续，重新失守修复位时应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.second_wave_repair_attempted
+      - position.second_wave_breakout_ratio
+      - position.repair_follow_through_failed
+      - position.volume_recovery_ratio
+    default_template_id: template_exit_second_wave_repair_failed_v1
+    template_ids:
+      - template_exit_second_wave_repair_failed_v1
+
+  - term_id: intraday_break_ma_weakening
+    display_name: 分时破均线弱化
+    aliases:
+      - 分时破均线弱化
+      - 破均线走弱
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 盘中强势结构跌破分时均线且回拉失败，通常意味着攻击节奏被打断，不应继续保留强跟踪预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.intraday_ma_break_confirmed
+      - candidate.intraday_ma_reclaim_failed
+      - candidate.close_below_intraday_ma_ratio
+      - market.intraday_trend_hold_rate
+    default_template_id: template_watch_intraday_break_ma_weakening_v1
+    template_ids:
+      - template_watch_intraday_break_ma_weakening_v1
+
+  - term_id: high_level_sideways_flush
+    display_name: 高位横盘后跳水
+    aliases:
+      - 高位横盘后跳水
+      - 高位横盘跳水
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 高位横盘整理后突然出现盘中跳水并失守整理支点，说明高位承接迅速恶化，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.high_level_sideways_confirmed
+      - position.intraday_flush_confirmed
+      - position.flush_from_sideways_high_ratio
+      - position.close_below_sideways_pivot_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_high_level_sideways_flush_v1
+    template_ids:
+      - template_exit_high_level_sideways_flush_v1
+
+  - term_id: low_volume_board_next_day_breakdown
+    display_name: 缩量上板次日失守
+    aliases:
+      - 缩量上板次日失守
+      - 缩量板次日失守
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 缩量上板后次日未形成应有强延续，弱开并失守板上承接结构时，不应继续接力或强跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.low_volume_board_yesterday_confirmed
+      - candidate.next_day_open_below_board_expectation_ratio
+      - candidate.close_below_board_support_ratio
+      - market.low_volume_board_follow_through_rate
+    default_template_id: template_watch_low_volume_board_next_day_breakdown_v1
+    template_ids:
+      - template_watch_low_volume_board_next_day_breakdown_v1
+
+  - term_id: tail_repair_no_follow_through
+    display_name: 尾盘抢修无延续
+    aliases:
+      - 尾盘抢修无延续
+      - 尾盘抢修失败
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 尾盘抢修动作看似修复，但次日未形成跟随延续并再度失守修复支点时，通常不应继续跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.tail_repair_attempt_confirmed
+      - candidate.next_day_repair_follow_ratio
+      - candidate.next_day_close_below_repair_pivot_ratio
+      - market.tail_repair_success_rate
+    default_template_id: template_watch_tail_repair_no_follow_through_v1
+    template_ids:
+      - template_watch_tail_repair_no_follow_through_v1
+
+  - term_id: high_volume_stall_reversal
+    display_name: 高位放量滞胀转杀
+    aliases:
+      - 高位放量滞胀转杀
+      - 放量滞胀转杀
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 高位股放量后价格推进停滞，随后被抛压反杀并失守关键承接位，通常意味着兑现盘占优，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - exit
+      - reduce
+      - warn
+    required_features:
+      - position.high_volume_stall_confirmed
+      - position.price_progress_stall_ratio
+      - position.close_below_stall_pivot_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_high_volume_stall_reversal_v1
+    template_ids:
+      - template_exit_high_volume_stall_reversal_v1
+
+  - term_id: rebound_over_previous_high_failed
+    display_name: 反抽过前高失败
+    aliases:
+      - 反抽过前高失败
+      - 过前高失败
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 反抽试图突破前高但不能形成有效站稳，重新跌回突破位下方时，说明修复延续失败，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.rebound_over_previous_high_attempted
+      - position.previous_high_breakout_ratio
+      - position.breakout_hold_failed
+      - position.acceptance_strength_score
+    default_template_id: template_exit_rebound_over_previous_high_failed_v1
+    template_ids:
+      - template_exit_rebound_over_previous_high_failed_v1
+
+  - term_id: afternoon_reflow_next_day_below_expectation
+    display_name: 午后回流次日低于预期
+    aliases:
+      - 午后回流次日低于预期
+      - 午后回流低预期
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 午后回流看似增强，但次日并未形成应有溢价与跟随，弱开弱走并失守回流支点时，不应继续追踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.afternoon_reflow_confirmed
+      - candidate.next_day_open_below_reflow_expectation_ratio
+      - candidate.next_day_close_below_reflow_pivot_ratio
+      - market.afternoon_reflow_follow_through_rate
+    default_template_id: template_watch_afternoon_reflow_next_day_below_expectation_v1
+    template_ids:
+      - template_watch_afternoon_reflow_next_day_below_expectation_v1
+
+  - term_id: board_fade_tail_breakdown
+    display_name: 炸板回落尾盘失守
+    aliases:
+      - 炸板回落尾盘失守
+      - 炸板尾盘失守
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 炸板后未能重新组织承接，尾盘继续回落并失守关键承接位，通常代表日内做多结构彻底破坏，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.board_break_after_limit_attempted
+      - position.tail_breakdown_confirmed
+      - position.close_below_board_pivot_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_board_fade_tail_breakdown_v1
+    template_ids:
+      - template_exit_board_fade_tail_breakdown_v1
+
+  - term_id: weak_repair_next_day_gap_down_kill
+    display_name: 弱修复次日低开再杀
+    aliases:
+      - 弱修复次日低开再杀
+      - 弱修复再杀
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 弱修复本就没有形成强承接，次日再度低开并继续杀跌，通常意味着修复完全失效，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.weak_repair_confirmed
+      - position.next_day_gap_down_confirmed
+      - position.next_day_close_below_repair_support_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_weak_repair_next_day_gap_down_kill_v1
+    template_ids:
+      - template_exit_weak_repair_next_day_gap_down_kill_v1
+
+  - term_id: sector_reflow_symbol_lagging
+    display_name: 板块回流但个股掉队
+    aliases:
+      - 板块回流但个股掉队
+      - 回流掉队
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 所属板块出现明显回流，但个股未能形成同步跟随、强度掉队并失守参考位时，不应继续列为强跟踪对象。
+    recommended_rule_types:
+      - event
+      - rank
+      - comparison
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.sector_reflow_confirmed
+      - candidate.sector_relative_lag_rank
+      - candidate.reflow_follow_strength_score
+      - candidate.close_below_reflow_reference_ratio
+    default_template_id: template_watch_sector_reflow_symbol_lagging_v1
+    template_ids:
+      - template_watch_sector_reflow_symbol_lagging_v1
+
+  - term_id: gap_up_instant_limit_acceptance_collapse
+    display_name: 高开秒板后承接塌陷
+    aliases:
+      - 高开秒板后承接塌陷
+      - 秒板承接塌陷
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 高开后快速秒板看似很强，但若开板后承接迅速塌陷并失守关键支点，通常不应继续追板或保留强跟踪预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.gap_up_instant_limit_confirmed
+      - candidate.instant_limit_open_board_confirmed
+      - candidate.acceptance_collapse_confirmed
+      - candidate.close_below_instant_limit_pivot_ratio
+      - market.instant_limit_follow_through_rate
+    default_template_id: template_watch_gap_up_instant_limit_acceptance_collapse_v1
+    template_ids:
+      - template_watch_gap_up_instant_limit_acceptance_collapse_v1
+
+  - term_id: low_level_first_board_no_premium
+    display_name: 低位首板隔日无溢价
+    aliases:
+      - 低位首板隔日无溢价
+      - 首板无溢价
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 低位首板后次日没有给出应有溢价，且回落失守首板支撑时，说明接力质量不足，不应继续强跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.low_level_first_board_confirmed
+      - candidate.next_day_open_premium_ratio
+      - candidate.next_day_close_below_first_board_support_ratio
+      - market.first_board_premium_rate
+    default_template_id: template_watch_low_level_first_board_no_premium_v1
+    template_ids:
+      - template_watch_low_level_first_board_no_premium_v1
+
+  - term_id: sector_divergence_leader_follower_split
+    display_name: 板块分歧时核心与跟风分化
+    aliases:
+      - 板块分歧时核心与跟风分化
+      - 核心跟风分化
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 板块进入分歧后，核心股仍能维持强度而跟风明显掉队、失守参考位时，应剔除弱侧个股的继续跟踪。
+    recommended_rule_types:
+      - event
+      - rank
+      - comparison
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.sector_divergence_confirmed
+      - candidate.leader_follower_divergence_score
+      - candidate.follow_strength_vs_leader_ratio
+      - candidate.close_below_divergence_reference_ratio
+    default_template_id: template_watch_sector_divergence_leader_follower_split_v1
+    template_ids:
+      - template_watch_sector_divergence_leader_follower_split_v1
+
+  - term_id: one_word_turnover_acceptance_decay
+    display_name: 一字换手后承接衰减
+    aliases:
+      - 一字换手后承接衰减
+      - 一字换手承接衰减
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 一字板打开换手后若承接快速衰减、回封意愿不足并失守换手支点，通常不应继续接力或保留强跟踪预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.one_word_turnover_open_confirmed
+      - candidate.turnover_acceptance_decay_score
+      - candidate.close_below_turnover_pivot_ratio
+      - market.one_word_turnover_success_rate
+    default_template_id: template_watch_one_word_turnover_acceptance_decay_v1
+    template_ids:
+      - template_watch_one_word_turnover_acceptance_decay_v1
+
+  - term_id: board_pullback_next_day_gap_down_confirmed
+    display_name: 冲板回落次日低开确认
+    aliases:
+      - 冲板回落次日低开确认
+      - 冲板回落低开确认
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 冲板未果后回落，次日再以低开确认弱势并失守回落支撑时，说明资金修复意愿不足，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.board_pullback_failed_confirmed
+      - position.next_day_gap_down_confirmed
+      - position.close_below_pullback_support_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_board_pullback_next_day_gap_down_confirmed_v1
+    template_ids:
+      - template_exit_board_pullback_next_day_gap_down_confirmed_v1
+
+  - term_id: sector_repair_leader_only_followers_stall
+    display_name: 板块修复时核心独强后排失速
+    aliases:
+      - 板块修复时核心独强后排失速
+      - 核心独强后排失速
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 板块修复阶段只有核心股维持强度，后排跟随明显掉速并失守修复参考位时，不应继续保留强跟踪。
+    recommended_rule_types:
+      - event
+      - rank
+      - comparison
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.sector_repair_confirmed
+      - candidate.leader_only_repair_gap_score
+      - candidate.follower_stall_strength_ratio
+      - candidate.close_below_repair_follow_reference_ratio
+    default_template_id: template_watch_sector_repair_leader_only_followers_stall_v1
+    template_ids:
+      - template_watch_sector_repair_leader_only_followers_stall_v1
+
+  - term_id: high_level_board_break_afternoon_second_kill
+    display_name: 高位炸板后午后再杀
+    aliases:
+      - 高位炸板后午后再杀
+      - 午后再杀
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 高位炸板后如果午后再次出现集中抛压并失守关键承接位，通常意味着高位资金一致兑现，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.high_level_board_break_confirmed
+      - position.afternoon_second_kill_confirmed
+      - position.close_below_afternoon_second_kill_pivot_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_high_level_board_break_afternoon_second_kill_v1
+    template_ids:
+      - template_exit_high_level_board_break_afternoon_second_kill_v1
+
+  - term_id: weak_to_strong_fail_consensus_take_profit
+    display_name: 弱转强失败转一致兑现
+    aliases:
+      - 弱转强失败转一致兑现
+      - 弱转强失败兑现
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 弱转强尝试失败后，市场从预期转为一致兑现并失守修复支点，说明修复逻辑破产，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.weak_to_strong_attempted
+      - position.weak_to_strong_failed_confirmed
+      - position.consensus_take_profit_confirmed
+      - position.close_below_reclaim_pivot_ratio
+    default_template_id: template_exit_weak_to_strong_fail_consensus_take_profit_v1
+    template_ids:
+      - template_exit_weak_to_strong_fail_consensus_take_profit_v1
+
+  - term_id: repair_market_core_secondary_switch
+    display_name: 修复行情里核心与次核心切换
+    aliases:
+      - 修复行情里核心与次核心切换
+      - 核心次核心切换
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 修复行情中原核心不再主导，次核心完成切换并获得资金承认时，应及时取消旧核心的强跟踪预期。
+    recommended_rule_types:
+      - event
+      - rank
+      - comparison
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.repair_market_confirmed
+      - candidate.secondary_core_switch_confirmed
+      - candidate.relative_core_rank
+      - candidate.close_below_core_switch_reference_ratio
+    default_template_id: template_watch_repair_market_core_secondary_switch_v1
+    template_ids:
+      - template_watch_repair_market_core_secondary_switch_v1
+
+  - term_id: consensus_repair_next_day_acceptance_vanish
+    display_name: 一致修复次日承接消失
+    aliases:
+      - 一致修复次日承接消失
+      - 修复次日承接消失
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 修复日形成强一致后，次日如果没有承接延续而是迅速失守修复支点，通常不应再追涨或继续保留强跟踪预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.consensus_repair_confirmed
+      - candidate.next_day_acceptance_vanish_confirmed
+      - candidate.close_below_repair_acceptance_pivot_ratio
+      - market.consensus_repair_follow_through_rate
+    default_template_id: template_watch_consensus_repair_next_day_acceptance_vanish_v1
+    template_ids:
+      - template_watch_consensus_repair_next_day_acceptance_vanish_v1
+
+  - term_id: accelerated_catch_up_afternoon_blowup
+    display_name: 加速补涨午后炸裂
+    aliases:
+      - 加速补涨午后炸裂
+      - 补涨午后炸裂
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 补涨股加速后午后出现炸裂式回落并失守关键承接位，通常意味着补涨接力失败，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.accelerated_catch_up_confirmed
+      - position.afternoon_blowup_confirmed
+      - position.close_below_catch_up_pivot_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_accelerated_catch_up_afternoon_blowup_v1
+    template_ids:
+      - template_exit_accelerated_catch_up_afternoon_blowup_v1
+
+  - term_id: cooling_end_counter_nuke_failed
+    display_name: 退潮末端反核失败
+    aliases:
+      - 退潮末端反核失败
+      - 末端反核失败
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 退潮末端尝试反核看似有修复迹象，但若承接确认失败并重新回到弱势区间，通常不应继续抄底或保留跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.cooling_end_confirmed
+      - candidate.counter_nuke_attempted
+      - candidate.counter_nuke_confirmation_ratio
+      - candidate.bid_acceptance_score
+    default_template_id: template_watch_cooling_end_counter_nuke_failed_v1
+    template_ids:
+      - template_watch_cooling_end_counter_nuke_failed_v1
+
+  - term_id: engulfing_board_blowup_take_profit
+    display_name: 反包冲板后炸裂兑现
+    aliases:
+      - 反包冲板后炸裂兑现
+      - 反包冲板炸裂兑现
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 反包后冲板看似强势，但若很快炸裂并转为一致兑现、失守关键支点，通常应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.engulfing_board_attempt_confirmed
+      - position.board_blowup_take_profit_confirmed
+      - position.close_below_engulfing_board_pivot_ratio
+      - position.selling_pressure_score
+    default_template_id: template_exit_engulfing_board_blowup_take_profit_v1
+    template_ids:
+      - template_exit_engulfing_board_blowup_take_profit_v1
+
+  - term_id: emotion_repair_second_divergence_failed
+    display_name: 情绪修复二次分歧失败
+    aliases:
+      - 情绪修复二次分歧失败
+      - 修复二次分歧失败
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 情绪修复后若二次分歧中承接不能完成再修复，反而失守关键支点，通常不应继续保留强跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.emotion_repair_confirmed
+      - candidate.second_divergence_failed_confirmed
+      - candidate.repair_strength_drop_ratio
+      - candidate.close_below_repair_divergence_pivot_ratio
+    default_template_id: template_watch_emotion_repair_second_divergence_failed_v1
+    template_ids:
+      - template_watch_emotion_repair_second_divergence_failed_v1
+
+  - term_id: cooling_tail_low_level_first_board_follow_insufficient
+    display_name: 退潮尾声低位首板跟随不足
+    aliases:
+      - 退潮尾声低位首板跟随不足
+      - 低位首板跟随不足
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 退潮尾声里低位首板虽然出现，但没有形成有效跟随和承接，次日或尾盘失守支撑时不应继续接力。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.cooling_tail_confirmed
+      - candidate.low_level_first_board_confirmed
+      - candidate.low_level_first_board_follow_ratio
+      - candidate.close_below_low_level_first_board_support_ratio
+    default_template_id: template_watch_cooling_tail_low_level_first_board_follow_insufficient_v1
+    template_ids:
+      - template_watch_cooling_tail_low_level_first_board_follow_insufficient_v1
+
+  - term_id: consensus_reflow_tail_weakening
+    display_name: 一致回流后尾盘走弱
+    aliases:
+      - 一致回流后尾盘走弱
+      - 回流尾盘走弱
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 盘中形成一致回流后若尾盘承接转弱、资金回流无法维持并失守关键支点，通常不应继续追涨或保留强跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - timer
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.consensus_reflow_confirmed
+      - candidate.tail_weakening_confirmed
+      - candidate.close_below_reflow_tail_pivot_ratio
+      - market.consensus_reflow_hold_rate
+    default_template_id: template_watch_consensus_reflow_tail_weakening_v1
+    template_ids:
+      - template_watch_consensus_reflow_tail_weakening_v1
+
+  - term_id: overtake_success_next_day_no_strengthening
+    display_name: 卡位成功次日不加强
+    aliases:
+      - 卡位成功次日不加强
+      - 卡位次日不加强
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 标的完成卡位成功后次日如果没有继续加强，反而失守卡位支点或相对强度回落，通常不应继续保留强跟踪。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.overtake_signal_confirmed
+      - candidate.next_day_strengthening_ratio
+      - candidate.close_below_overtake_pivot_ratio
+      - candidate.relative_core_strength_score
+    default_template_id: template_watch_overtake_success_next_day_no_strengthening_v1
+    template_ids:
+      - template_watch_overtake_success_next_day_no_strengthening_v1
+
+  - term_id: cooling_mid_weak_repair_rebreak
+    display_name: 退潮中继的弱修复再破位
+    aliases:
+      - 退潮中继的弱修复再破位
+      - 弱修复再破位
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 退潮中继阶段出现的弱修复如果不能走强，反而再次破位并失守支点，通常意味着弱修复失败，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - market.cooling_mid_confirmed
+      - position.weak_repair_confirmed
+      - position.rebreak_after_weak_repair_confirmed
+      - position.close_below_weak_repair_pivot_ratio
+    default_template_id: template_exit_cooling_mid_weak_repair_rebreak_v1
+    template_ids:
+      - template_exit_cooling_mid_weak_repair_rebreak_v1
+
+  - term_id: high_level_blowup_next_day_thin_volume_drift
+    display_name: 高位炸板次日缩量阴跌
+    aliases:
+      - 高位炸板次日缩量阴跌
+      - 炸板次日缩量阴跌
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 高位炸板后如果次日没有快速修复，反而以缩量阴跌方式持续失守支撑，通常不应继续保留低吸或修复预期。
+    recommended_rule_types:
+      - event
+      - comparison
+      - state
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - candidate.high_level_blowup_confirmed
+      - candidate.next_day_thin_volume_confirmed
+      - candidate.close_below_blowup_support_ratio
+      - market.high_level_blowup_repair_rate
+    default_template_id: template_watch_high_level_blowup_next_day_thin_volume_drift_v1
+    template_ids:
+      - template_watch_high_level_blowup_next_day_thin_volume_drift_v1
+
+  - term_id: emotion_repair_afternoon_reversal_kill
+    display_name: 情绪修复后午后反杀
+    aliases:
+      - 情绪修复后午后反杀
+      - 修复日午后反杀
+    domain: a_share_short_term
+    category: watch_invalidation
+    description: 情绪修复日如果午后出现反杀、承接回落并失守修复支点，通常意味着修复强度不足，不应继续追踪或追涨。
+    recommended_rule_types:
+      - event
+      - comparison
+      - score
+    recommended_actions:
+      - block
+      - unwatch
+      - warn
+    required_features:
+      - market.emotion_repair_confirmed
+      - candidate.afternoon_reversal_kill_confirmed
+      - candidate.close_below_afternoon_repair_pivot_ratio
+      - candidate.repair_follow_strength_score
+    default_template_id: template_watch_emotion_repair_afternoon_reversal_kill_v1
+    template_ids:
+      - template_watch_emotion_repair_afternoon_reversal_kill_v1
+
+  - term_id: weak_to_strong_failed_gap_down_no_acceptance
+    display_name: 弱转强失败后低开无承接
+    aliases:
+      - 弱转强失败后低开无承接
+      - 弱转强失败低开无承接
+    domain: a_share_short_term
+    category: exit_pattern
+    description: 弱转强失败后若次日直接低开且承接不足，同时继续失守修复支点，通常意味着修复叙事彻底失败，应优先退出。
+    recommended_rule_types:
+      - event
+      - comparison
+      - sequence
+    recommended_actions:
+      - exit
+      - reduce
+      - cooldown
+    required_features:
+      - position.weak_to_strong_attempted
+      - position.weak_to_strong_failed_confirmed
+      - position.next_day_gap_down_confirmed
+      - position.close_below_reclaim_pivot_ratio
+      - position.acceptance_strength_score
+    default_template_id: template_exit_weak_to_strong_failed_gap_down_no_acceptance_v1
+    template_ids:
+      - template_exit_weak_to_strong_failed_gap_down_no_acceptance_v1
+
+  - term_id: market_emotion_repair_allow_entry
+    display_name: 情绪修复放行新开仓
+    aliases:
+      - 情绪修复放行
+      - 修复后放行新开仓
+    domain: a_share_short_term
+    category: market_gate
+    description: 市场情绪修复且高位承接、回封率、题材宽度同步回暖时，允许恢复新增仓位。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - state_switch
+      - candidate_entry
+      - open
+    required_features:
+      - market.emotion_repair_confirmed
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_emotion_repair_allow_entry_v1
+    template_ids:
+      - template_risk_market_emotion_repair_allow_entry_v1
+
+  - term_id: market_reseal_recovery_allow_entry
+    display_name: 回封率修复放行新开仓
+    aliases:
+      - 回封率修复放行
+      - 回封率恢复放行
+    domain: a_share_short_term
+    category: market_gate
+    description: 回封成功率修复且高位开板率回落、题材扩散恢复时，允许恢复精选新增仓位。
+    recommended_rule_types:
+      - state
+      - comparison
+      - count
+    recommended_actions:
+      - state_switch
+      - candidate_entry
+      - open
+    required_features:
+      - market.emotion_cycle
+      - market.high_level_open_board_rate
+      - market.limit_up_reseal_rate
+      - market.theme_breadth
+    default_template_id: template_risk_market_reseal_recovery_allow_entry_v1
+    template_ids:
+      - template_risk_market_reseal_recovery_allow_entry_v1
+
+  - term_id: midterm_platform_breakout
+    display_name: 中期平台突破放量
+    aliases:
+      - 中期平台突破
+      - 平台突破放量
+    domain: a_share_mid_long_term
+    category: entry_pattern
+    description: 中期平台整理后放量突破并维持趋势斜率向上，通常意味着中线趋势继续展开。
+    recommended_rule_types:
+      - comparison
+      - sequence
+      - score
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.platform_breakout_confirmed
+      - candidate.close_above_platform_ratio
+      - candidate.volume_ratio_to_20d_avg
+      - candidate.midterm_trend_slope
+      - market.midterm_breakout_success_rate
+    default_template_id: template_entry_midterm_platform_breakout_v1
+    template_ids:
+      - template_entry_midterm_platform_breakout_v1
+
+  - term_id: long_term_yearline_reclaim
+    display_name: 年线收复回踩确认
+    aliases:
+      - 年线收复
+      - 年线回踩确认
+    domain: a_share_mid_long_term
+    category: entry_pattern
+    description: 长期均线被重新收复且长期趋势斜率转正后，说明长线趋势恢复向上，可作为长线候选。
+    recommended_rule_types:
+      - comparison
+      - sequence
+      - score
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.yearline_reclaim_confirmed
+      - candidate.close_to_ma250_ratio
+      - candidate.ma250_trend_slope
+      - market.long_term_trend_participation_rate
+    default_template_id: template_entry_long_term_yearline_reclaim_v1
+    template_ids:
+      - template_entry_long_term_yearline_reclaim_v1
+
+  - term_id: long_term_ma120_break_exit
+    display_name: 跌破120日线趋势退出
+    aliases:
+      - 跌破120日线退出
+      - 120日线走坏退出
+    domain: a_share_mid_long_term
+    category: exit_pattern
+    description: 长线趋势跌破 120 日线并伴随中期趋势斜率转弱或回撤扩大时，通常意味着长线持仓应减仓或退出。
+    recommended_rule_types:
+      - comparison
+      - state
+      - sequence
+    recommended_actions:
+      - reduce
+      - exit
+      - cooldown
+    required_features:
+      - position.close_below_ma120_ratio
+      - position.ma120_trend_slope
+      - position.trailing_drawdown_ratio
+    default_template_id: template_exit_long_term_ma120_break_v1
+    template_ids:
+      - template_exit_long_term_ma120_break_v1
+
+  - term_id: event_earnings_surprise_breakout
+    display_name: 业绩超预期放量突破
+    aliases:
+      - 业绩超预期突破
+      - 业绩催化放量突破
+    domain: a_share_event_driven
+    category: entry_pattern
+    description: 业绩或预告明显超预期后，事件窗口内放量突破关键位，通常意味着事件驱动行情开始发酵。
+    recommended_rule_types:
+      - event
+      - comparison
+      - score
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.earnings_positive_surprise_confirmed
+      - candidate.event_window_strength_score
+      - candidate.close_above_event_breakout_ratio
+      - market.event_driven_follow_through_rate
+    default_template_id: template_entry_event_earnings_surprise_breakout_v1
+    template_ids:
+      - template_entry_event_earnings_surprise_breakout_v1
+
+  - term_id: hft_orderflow_reclaim
+    display_name: 盘口扫单回补确认
+    aliases:
+      - 扫单回补确认
+      - 盘口回补确认
+    domain: a_share_high_frequency
+    category: entry_pattern
+    description: 盘口出现扫单后迅速回补、买方承接增强且微结构稳定时，通常适合作为高频短打候选。
+    recommended_rule_types:
+      - event
+      - comparison
+      - score
+    recommended_actions:
+      - candidate_entry
+      - open
+      - score
+    required_features:
+      - candidate.orderflow_sweep_reclaim_confirmed
+      - candidate.bid_acceptance_score
+      - candidate.micro_pullback_reclaim_ratio
+      - market.microstructure_stability_score
+    default_template_id: template_entry_hft_orderflow_reclaim_v1
+    template_ids:
+      - template_entry_hft_orderflow_reclaim_v1
+
+  - term_id: market_bull_trend_allow_entry
+    display_name: 牛市趋势放行新开仓
+    aliases:
+      - 牛市放行
+      - 牛市趋势放行
+    domain: a_share_market_regime
+    category: market_gate
+    description: 市场处于牛市趋势阶段且广度、趋势强度与年线站稳比例同步改善时，允许恢复趋势类新增仓位。
+    recommended_rule_types:
+      - state
+      - comparison
+      - score
+    recommended_actions:
+      - state_switch
+      - candidate_entry
+      - open
+    required_features:
+      - market.regime_state
+      - market.breadth_above_ma60_ratio
+      - market.index_above_ma120_ratio
+      - market.trend_strength_score
+    default_template_id: template_risk_market_bull_trend_allow_entry_v1
+    template_ids:
+      - template_risk_market_bull_trend_allow_entry_v1
+
+  - term_id: market_trend_neutral_allow_entry
+    display_name: 趋势中性环境放行
+    aliases:
+      - 趋势中性环境放行
+      - 中性市场放行
+      - 趋势环境放行
+    domain: a_share_market_regime
+    category: market_gate
+    description: 市场不是明显熊市，广度、趋势强度和阶段回撤仍处于可承受区间时，允许日线趋势策略继续筛选新增仓位。
+    recommended_rule_types:
+      - state
+      - comparison
+      - score
+    recommended_actions:
+      - state_switch
+      - candidate_entry
+      - open
+    required_features:
+      - market.regime_state
+      - market.breadth_above_ma60_ratio
+      - market.trend_strength_score
+      - market.drawdown_from_recent_high
+    default_template_id: template_risk_market_trend_neutral_allow_entry_v1
+    template_ids:
+      - template_risk_market_trend_neutral_allow_entry_v1
+
+  - term_id: market_sideways_selective_entry
+    display_name: 震荡市精选放行
+    aliases:
+      - 震荡市放行
+      - 震荡市精选放行
+    domain: a_share_market_regime
+    category: market_gate
+    description: 市场处于震荡阶段且波动冲击可控时，仅放行低风险、强确认类候选。
+    recommended_rule_types:
+      - state
+      - comparison
+      - score
+    recommended_actions:
+      - state_switch
+      - candidate_entry
+      - observe
+    required_features:
+      - market.regime_state
+      - market.breadth_above_ma60_ratio
+      - market.volatility_shock_score
+      - market.drawdown_from_recent_high
+    default_template_id: template_risk_market_sideways_selective_entry_v1
+    template_ids:
+      - template_risk_market_sideways_selective_entry_v1
+
+  - term_id: market_bear_freeze_entry
+    display_name: 熊市冻结新开仓
+    aliases:
+      - 熊市冻结
+      - 熊市冻结新仓
+    domain: a_share_market_regime
+    category: market_risk
+    description: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位，避免在系统性下行中持续试错。
+    recommended_rule_types:
+      - state
+      - comparison
+      - score
+    recommended_actions:
+      - freeze
+      - halt
+      - cooldown
+    required_features:
+      - market.regime_state
+      - market.breadth_above_ma60_ratio
+      - market.drawdown_from_recent_high
+      - market.volatility_shock_score
+    default_template_id: template_risk_market_bear_freeze_entry_v1
+    template_ids:
+      - template_risk_market_bear_freeze_entry_v1

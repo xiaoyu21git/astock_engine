@@ -1,0 +1,62 @@
+version: 1
+namespace: trading.exit.weak_to_strong_fail_consensus_take_profit
+rules:
+  - id: weak-to-strong-fail-consensus-take-profit-exit
+    name: 弱转强失败转一致兑现退出规则
+    stage: rebalance
+    priority: 94
+    description: 弱转强失败后出现一致兑现并失守修复支点时，执行退出。
+    tags: [a_share_short_term, exit, weak_to_strong_fail, consensus_take_profit]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_to_strong_attempted
+        - op: truthy
+          value:
+            var: position.weak_to_strong_failed_confirmed
+        - op: truthy
+          value:
+            var: position.consensus_take_profit_confirmed
+        - op: lt
+          left:
+            var: position.close_below_reclaim_pivot_ratio
+          right: 0.998
+    then:
+      result: exit
+      reason_code: weak_to_strong_fail_consensus_take_profit_exit
+      message: 弱转强失败后转一致兑现，执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: cooldown
+
+  - id: weak-to-strong-fail-consensus-take-profit-reduce
+    name: 弱转强失败转一致兑现减仓规则
+    stage: rebalance
+    priority: 81
+    description: 弱转强失败后开始兑现但尚未完全失控时，先减仓防守。
+    tags: [a_share_short_term, exit, weak_to_strong_fail, reduce]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: position.weak_to_strong_attempted
+        - op: truthy
+          value:
+            var: position.weak_to_strong_failed_confirmed
+        - op: truthy
+          value:
+            var: position.consensus_take_profit_confirmed
+        - op: lt
+          left:
+            var: position.close_below_reclaim_pivot_ratio
+          right: 1.0
+    then:
+      result: reduce
+      reason_code: weak_to_strong_fail_consensus_take_profit_reduce
+      message: 弱转强失败后兑现升温，先减仓防守
+      payload:
+        reduce_ratio: 0.5
+        state: defense_mode

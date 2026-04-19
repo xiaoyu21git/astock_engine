@@ -1,0 +1,63 @@
+version: 1
+namespace: trading.watch.low_volume_board_next_day_breakdown
+rules:
+  - id: low-volume-board-next-day-breakdown-block
+    name: 缩量上板次日失守阻断规则
+    stage: signal
+    priority: 97
+    description: 缩量上板后次日弱开并失守板上承接结构时，取消继续接力与跟踪。
+    tags: [a_share_short_term, watch, low_volume_board, next_day_breakdown]
+    when:
+      op: any
+      conditions:
+        - op: all
+          conditions:
+            - op: truthy
+              value:
+                var: candidate.low_volume_board_yesterday_confirmed
+            - op: lt
+              left:
+                var: candidate.next_day_open_below_board_expectation_ratio
+              right: 0.995
+            - op: lt
+              left:
+                var: candidate.close_below_board_support_ratio
+              right: 0.998
+        - op: lt
+          left:
+            var: market.low_volume_board_follow_through_rate
+          right: 0.33
+    then:
+      result: block
+      reason_code: low_volume_board_next_day_breakdown_block
+      message: 缩量上板次日失守，取消继续跟踪
+      payload:
+        state: abandoned
+        action: unwatch
+
+  - id: low-volume-board-next-day-breakdown-continue-watch
+    name: 缩量上板次日继续观察规则
+    stage: signal
+    priority: 60
+    description: 缩量上板后次日虽略低于预期但仍保留一定延续时，仅继续观察。
+    tags: [a_share_short_term, watch, low_volume_board, continue]
+    when:
+      op: all
+      conditions:
+        - op: truthy
+          value:
+            var: candidate.low_volume_board_yesterday_confirmed
+        - op: ge
+          left:
+            var: candidate.next_day_open_below_board_expectation_ratio
+          right: 0.995
+        - op: ge
+          left:
+            var: market.low_volume_board_follow_through_rate
+          right: 0.33
+    then:
+      result: pass
+      reason_code: low_volume_board_next_day_continue_watch
+      message: 缩量上板次日仍可继续观察
+      payload:
+        state: watchlist

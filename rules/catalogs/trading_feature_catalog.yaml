@@ -1,0 +1,1866 @@
+version: 1
+namespace: trading_features
+features:
+  - feature_id: candidate.previous_weakness_confirmed
+    display_name: 前期走弱确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的此前已出现转弱或失势信号，用于弱转强语义识别。
+    related_terms: [weak_to_strong]
+
+  - feature_id: candidate.reclaim_reference_ratio
+    display_name: 修复关键位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对关键修复位的比例，大于 1 表示重新站回关键位置。
+    related_terms: [weak_to_strong]
+
+  - feature_id: candidate.reclaim_reference_strength
+    display_name: 修复强度得分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 价格修复质量的综合得分，可直接作为候选排序分数。
+    related_terms: [weak_to_strong]
+
+  - feature_id: candidate.volume_ratio_to_5d_avg
+    display_name: 相对 5 日均量比
+    scope: symbol
+    category: volume_price
+    value_type: number
+    description: 当前量能相对 5 日均量的倍数，是放量和缩量语义的基础字段。
+    related_terms: [weak_to_strong, failed_rebound_engulfing, acceptance_breakdown_exit]
+
+  - feature_id: candidate.limit_up_opened
+    display_name: 涨停打开事件
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的在当前周期是否出现过炸板或开板行为。
+    related_terms: [limit_up_reseal]
+
+  - feature_id: candidate.reseal_confirmed
+    display_name: 回封确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 涨停打开后是否重新封板成功。
+    related_terms: [limit_up_reseal]
+
+  - feature_id: candidate.open_board_duration_seconds
+    display_name: 开板持续秒数
+    scope: symbol
+    category: board_behavior
+    value_type: number
+    description: 炸板到回封之间的持续时间，时间越短通常回封质量越高。
+    related_terms: [limit_up_reseal]
+
+  - feature_id: candidate.volume_ratio_to_intraday_avg
+    display_name: 相对分时均量比
+    scope: symbol
+    category: volume_price
+    value_type: number
+    description: 当前分时量能相对盘中平均成交量的倍数。
+    related_terms: [limit_up_reseal]
+
+  - feature_id: candidate.leader_replaced
+    display_name: 龙头被替代事件
+    scope: symbol
+    category: theme_rotation
+    value_type: boolean
+    description: 题材龙头位置已被更强标的取代。
+    related_terms: [leader_replaced_abandon_watch]
+
+  - feature_id: candidate.theme_heat_rank
+    display_name: 题材热度排名
+    scope: symbol
+    category: ranking
+    value_type: number
+    description: 标的所属题材在市场热度中的相对排序。
+    related_terms: [leader_replaced_abandon_watch, catch_up_breakout]
+
+  - feature_id: candidate.relative_core_rank
+    display_name: 题材核心排名
+    scope: symbol
+    category: ranking
+    value_type: number
+    description: 标的在所属题材核心梯队内的相对位置，数值越小越核心。
+    related_terms: [leader_replaced_abandon_watch, overtake_rotation]
+
+  - feature_id: position.unrealized_return_percent
+    display_name: 未实现收益率
+    scope: position
+    category: pnl
+    value_type: number
+    description: 持仓当前浮盈浮亏百分比。
+    related_terms: [scale_out_take_profit]
+
+  - feature_id: position.take_profit_stage
+    display_name: 止盈阶段
+    scope: position
+    category: position_state
+    value_type: string
+    description: 持仓当前止盈推进阶段，如 none、partial_take_profit、scaled_out。
+    related_terms: [scale_out_take_profit]
+
+  - feature_id: position.trend_damage_confirmed
+    display_name: 趋势破坏确认
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 持仓趋势结构已确认破坏，可触发彻底退出。
+    related_terms: [scale_out_take_profit, acceptance_breakdown_exit]
+
+  - feature_id: market.emotion_cycle
+    display_name: 市场情绪周期
+    scope: market
+    category: market_state
+    value_type: enum
+    description: 当前市场情绪周期状态，例如 warm、hot、repair、cooling、panic。
+    related_terms: [weak_to_strong, limit_up_reseal, leader_replaced_abandon_watch, scale_out_take_profit, market_emotion_cooling_freeze, market_high_level_open_board_deterioration_freeze, market_reseal_rate_drop_freeze, market_theme_cooling_freeze, overtake_rotation, catch_up_breakout]
+
+  - feature_id: market.high_level_open_board_rate
+    display_name: 高位开板率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 高位强势股的开板比例，用于识别高位承接是否恶化。
+    related_terms: [market_emotion_cooling_freeze, market_high_level_open_board_deterioration_freeze, market_reseal_rate_drop_freeze]
+
+  - feature_id: market.limit_up_reseal_rate
+    display_name: 回封成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 当日炸板后成功回封的比例，用于刻画情绪强弱。
+    related_terms: [market_emotion_cooling_freeze, market_high_level_open_board_deterioration_freeze, market_reseal_rate_drop_freeze]
+
+  - feature_id: market.theme_breadth
+    display_name: 题材扩散度
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 热门题材的扩散宽度和跟风数量，可辅助判断退潮或发酵。
+    related_terms: [market_emotion_cooling_freeze, market_high_level_open_board_deterioration_freeze, market_reseal_rate_drop_freeze, market_theme_cooling_freeze, catch_up_breakout]
+
+  - feature_id: candidate.relative_core_strength_score
+    display_name: 相对核心强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 标的相对题材龙头和同梯队个股的综合强度分。
+    related_terms: [overtake_rotation]
+
+  - feature_id: candidate.overtake_signal_confirmed
+    display_name: 卡位确认事件
+    scope: symbol
+    category: theme_rotation
+    value_type: boolean
+    description: 标的已出现明确卡位上位信号，如强于原龙头或率先回封。
+    related_terms: [overtake_rotation]
+
+  - feature_id: candidate.lagging_return_percent
+    display_name: 相对龙头滞涨幅度
+    scope: symbol
+    category: relative_strength
+    value_type: number
+    description: 标的相对龙头尚未完成的涨幅差，用于识别补涨空间。
+    related_terms: [catch_up_breakout]
+
+  - feature_id: candidate.breakout_neckline_ratio
+    display_name: 突破颈线比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对关键突破颈线的比例。
+    related_terms: [catch_up_breakout]
+
+  - feature_id: candidate.theme_leader_locked
+    display_name: 龙头锁定状态
+    scope: symbol
+    category: theme_rotation
+    value_type: boolean
+    description: 题材龙头地位是否已锁定，常作为补涨逻辑前提。
+    related_terms: [catch_up_breakout]
+
+  - feature_id: position.failed_engulfing_confirmed
+    display_name: 反包失败确认
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 反包尝试失败并重新转弱，通常对应短线退出信号。
+    related_terms: [failed_rebound_engulfing]
+
+  - feature_id: position.acceptance_strength_score
+    display_name: 承接强度得分
+    scope: position
+    category: orderflow
+    value_type: number
+    description: 买盘承接、抛压消化和盘口支撑的综合评分。
+    related_terms: [acceptance_breakdown_exit, failed_rebound_engulfing, weak_to_strong_failed_gap_down_no_acceptance]
+
+  - feature_id: position.intraday_pullback_percent
+    display_name: 日内回撤幅度
+    scope: position
+    category: pnl
+    value_type: number
+    description: 日内从高点回落的幅度，可辅助判断抢跑和承接恶化。
+    related_terms: [acceptance_breakdown_exit, failed_rebound_engulfing]
+
+  - feature_id: candidate.high_divergence_confirmed
+    display_name: 高位分歧确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的已进入高位分歧博弈状态，常见于高位开板、反复回封或抛压增大阶段。
+    related_terms: [high_divergence_weakening]
+
+  - feature_id: candidate.close_below_reference_ratio
+    display_name: 收盘跌破参考位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对分歧观察参考位的比例，小于 1 表示重新跌破参考位。
+    related_terms: [high_divergence_weakening]
+
+  - feature_id: market.high_level_divergence_rate
+    display_name: 高位分歧率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 高位强势股中出现明显分歧的比例，用于识别高位风险是否扩散。
+    related_terms: [high_divergence_weakening]
+
+  - feature_id: position.board_break_confirmed
+    display_name: 断板确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 连板结构已被打断，原先板块强度叙事开始失效。
+    related_terms: [broken_board_failed_rebound]
+
+  - feature_id: position.rebound_attempt_failed
+    display_name: 反抽尝试失败
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 断板后尝试反抽修复但未能形成有效承接和站回。
+    related_terms: [broken_board_failed_rebound]
+
+  - feature_id: position.close_below_intraday_reclaim_ratio
+    display_name: 日内修复位失守比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对日内反抽修复位的比例，小于 1 表示再次失守修复位。
+    related_terms: [broken_board_failed_rebound]
+
+  - feature_id: market.repair_reflow_confirmed
+    display_name: 修复回流确认
+    scope: market
+    category: market_state
+    value_type: boolean
+    description: 市场情绪已经从退潮转入修复，且资金重新回流核心方向。
+    related_terms: [emotion_reflow_repair]
+
+  - feature_id: market.core_theme_return_rate
+    display_name: 核心题材回流率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 核心题材中重新走强个股的比例，用于判断修复是否具备持续性。
+    related_terms: [emotion_reflow_repair]
+
+  - feature_id: candidate.core_theme_reflow_rank
+    display_name: 核心题材回流排名
+    scope: symbol
+    category: ranking
+    value_type: number
+    description: 标的在本轮情绪修复回流中的相对排序，越靠前越值得优先关注。
+    related_terms: [emotion_reflow_repair]
+
+  - feature_id: candidate.early_repair_strength_score
+    display_name: 早盘修复强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 标的在修复早段的承接、拉升和稳定性综合得分。
+    related_terms: [emotion_reflow_repair]
+
+  - feature_id: candidate.breakout_after_repair_ratio
+    display_name: 修复后突破比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 标的在修复后相对回流突破位的比例，大于 1 表示已完成修复后突破。
+    related_terms: [emotion_reflow_repair]
+
+  - feature_id: candidate.consensus_acceleration_confirmed
+    display_name: 一致加速确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的已进入强一致加速阶段，追涨资金高度集中。
+    related_terms: [consensus_acceleration_exhaustion]
+
+  - feature_id: candidate.intraday_chase_saturation_score
+    display_name: 日内追高拥挤度分
+    scope: symbol
+    category: orderflow
+    value_type: number
+    description: 追高拥挤程度和换手消耗的综合得分，分值越高越接近衰竭边缘。
+    related_terms: [consensus_acceleration_exhaustion]
+
+  - feature_id: candidate.first_divergence_pullback_ratio
+    display_name: 首次分歧回落比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 一致加速后的首次明显分歧回落幅度。
+    related_terms: [consensus_acceleration_exhaustion]
+
+  - feature_id: market.high_consensus_collapse_rate
+    display_name: 高一致崩塌率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 高一致加速个股中快速转弱或炸裂的比例，用于识别一致加速环境是否开始崩塌。
+    related_terms: [consensus_acceleration_exhaustion]
+
+  - feature_id: position.floor_to_limit_attempted
+    display_name: 地天板尝试事件
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的已出现从深水到涨停方向的修复尝试。
+    related_terms: [floor_to_limit_failed]
+
+  - feature_id: position.limit_reseal_failed
+    display_name: 回封失败
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 地天板修复过程中未能稳住涨停或关键回封区域。
+    related_terms: [floor_to_limit_failed]
+
+  - feature_id: position.close_below_limit_reclaim_ratio
+    display_name: 失守回封位比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对地天修复关键回封位的比例，小于 1 表示重新失守。
+    related_terms: [floor_to_limit_failed]
+
+  - feature_id: candidate.tail_ramp_attack_confirmed
+    display_name: 尾盘偷袭确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在前一交易日尾盘出现快速拉升或偷袭式进攻行为。
+    related_terms: [tail_ramp_next_day_weakening]
+
+  - feature_id: candidate.next_day_open_strength_ratio
+    display_name: 次日开盘强度比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日开盘相对前一尾盘偷袭参考位的强弱比例。
+    related_terms: [tail_ramp_next_day_weakening]
+
+  - feature_id: candidate.next_day_volume_follow_ratio
+    display_name: 次日量能跟随比例
+    scope: symbol
+    category: volume_price
+    value_type: number
+    description: 次日量能对前一日尾盘偷袭动作的跟随程度。
+    related_terms: [tail_ramp_next_day_weakening]
+
+  - feature_id: candidate.next_day_red_to_black_failed
+    display_name: 次日红转黑失败
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 次日未能维持红盘或冲高回落转黑，说明尾盘偷袭缺乏持续性。
+    related_terms: [tail_ramp_next_day_weakening]
+
+  - feature_id: market.tail_attack_follow_through_rate
+    display_name: 尾盘偷袭延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 前一交易日尾盘偷袭个股在次日形成有效延续的比例。
+    related_terms: [tail_ramp_next_day_weakening]
+
+  - feature_id: position.thin_volume_rebound_attempted
+    display_name: 地量反抽尝试
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在缩量或地量背景下出现过反抽修复尝试。
+    related_terms: [thin_volume_rebound_failed]
+
+  - feature_id: position.rebound_confirmation_failed
+    display_name: 反抽确认失败
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 反抽修复未能站稳关键确认位或未能持续获得承接。
+    related_terms: [thin_volume_rebound_failed]
+
+  - feature_id: position.close_below_rebound_pivot_ratio
+    display_name: 失守反抽支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对反抽支点的比例，小于 1 表示重新失守修复支点。
+    related_terms: [thin_volume_rebound_failed]
+
+  - feature_id: position.volume_recovery_ratio
+    display_name: 反抽量能恢复比例
+    scope: position
+    category: volume_price
+    value_type: number
+    description: 反抽阶段量能恢复相对基准量能的比例，用于识别修复质量。
+    related_terms: [thin_volume_rebound_failed]
+
+  - feature_id: candidate.afternoon_chase_confirmed
+    display_name: 午后抢筹确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在午后出现明显资金抢筹或加速拉升行为。
+    related_terms: [afternoon_chase_then_fade]
+
+  - feature_id: candidate.afternoon_fade_drawdown_ratio
+    display_name: 午后回落幅度比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 午后抢筹后从高点回落的幅度比例。
+    related_terms: [afternoon_chase_then_fade]
+
+  - feature_id: candidate.close_below_afternoon_attack_ratio
+    display_name: 收盘跌破午后攻击位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对午后攻击确认位的比例，小于 1 表示攻击结构失守。
+    related_terms: [afternoon_chase_then_fade]
+
+  - feature_id: market.afternoon_follow_through_rate
+    display_name: 午后抢筹延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 午后抢筹个股在随后时段或次日形成延续的比例。
+    related_terms: [afternoon_chase_then_fade]
+
+  - feature_id: candidate.counter_nuke_attempted
+    display_name: 反核尝试事件
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的从深水弱势区间出现过快速反核或翘板尝试。
+    related_terms: [counter_nuke_confirmation_failed]
+
+  - feature_id: candidate.counter_nuke_confirmation_ratio
+    display_name: 反核确认比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 反核后相对确认位的稳定比例，小于 1 表示确认失败。
+    related_terms: [counter_nuke_confirmation_failed]
+
+  - feature_id: candidate.bid_acceptance_score
+    display_name: 买盘承接得分
+    scope: symbol
+    category: orderflow
+    value_type: number
+    description: 买盘承接、封单稳定性和回落消化能力的综合得分。
+    related_terms: [counter_nuke_confirmation_failed]
+
+  - feature_id: market.counter_nuke_success_rate
+    display_name: 反核成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 反核尝试个股中最终形成有效修复和延续的比例。
+    related_terms: [counter_nuke_confirmation_failed]
+
+  - feature_id: candidate.afternoon_reseal_attempted
+    display_name: 午后回封尝试
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在午后出现过明显回封或再度封板尝试。
+    related_terms: [afternoon_reseal_failed]
+
+  - feature_id: candidate.reseal_hold_minutes
+    display_name: 回封维持分钟数
+    scope: symbol
+    category: board_behavior
+    value_type: number
+    description: 午后回封后维持强势结构的时间长度，越短越容易视为失败。
+    related_terms: [afternoon_reseal_failed]
+
+  - feature_id: candidate.close_below_reseal_pivot_ratio
+    display_name: 收盘失守回封支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对午后回封支点的比例，小于 1 表示回封结构失守。
+    related_terms: [afternoon_reseal_failed]
+
+  - feature_id: market.afternoon_reseal_success_rate
+    display_name: 午后回封成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 午后回封尝试个股最终维持封板或强势结构的比例。
+    related_terms: [afternoon_reseal_failed]
+
+  - feature_id: candidate.first_board_yesterday_confirmed
+    display_name: 昨日首板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的上一交易日已完成首板确认。
+    related_terms: [first_board_next_day_weak_to_weaker]
+
+  - feature_id: candidate.next_day_open_below_expected_ratio
+    display_name: 次日开盘低于预期比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日开盘相对首板次日预期强度的比例，小于 1 表示低于预期。
+    related_terms: [first_board_next_day_weak_to_weaker]
+
+  - feature_id: candidate.next_day_follow_through_strength_score
+    display_name: 次日延续强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 首板次日承接、量能和继续走强能力的综合评分。
+    related_terms: [first_board_next_day_weak_to_weaker]
+
+  - feature_id: candidate.next_day_weak_to_weaker_confirmed
+    display_name: 次日弱转弱确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 次日未能修复而是继续走弱，形成弱转弱确认。
+    related_terms: [first_board_next_day_weak_to_weaker]
+
+  - feature_id: position.low_volume_repair_attempted
+    display_name: 缩量修复尝试
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在缩量背景下出现过修复或反抽尝试。
+    related_terms: [low_volume_false_repair]
+
+  - feature_id: position.repair_confirmation_failed
+    display_name: 修复确认失败
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 修复未能站稳确认位或未能延续到下一阶段。
+    related_terms: [low_volume_false_repair]
+
+  - feature_id: position.repair_breakout_ratio
+    display_name: 修复突破比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对修复突破位的比例，小于 1 表示重新跌回修复位下方。
+    related_terms: [low_volume_false_repair]
+
+  - feature_id: candidate.one_word_board_yesterday_confirmed
+    display_name: 昨日一字板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的上一交易日以一字板强封完成确认。
+    related_terms: [one_word_open_board_weakening]
+
+  - feature_id: candidate.open_board_today_confirmed
+    display_name: 今日开板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 一字板次日已出现开板或炸板行为。
+    related_terms: [one_word_open_board_weakening]
+
+  - feature_id: candidate.open_board_acceptance_score
+    display_name: 开板承接得分
+    scope: symbol
+    category: orderflow
+    value_type: number
+    description: 一字开板后的承接、回封意愿和抛压消化能力综合得分。
+    related_terms: [one_word_open_board_weakening]
+
+  - feature_id: candidate.close_below_open_board_pivot_ratio
+    display_name: 收盘失守开板支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对开板支点的比例，小于 1 表示开板后结构已失守。
+    related_terms: [one_word_open_board_weakening]
+
+  - feature_id: position.engulfing_yesterday_confirmed
+    display_name: 昨日反包确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的上一交易日已完成反包修复确认。
+    related_terms: [engulfing_next_day_fade]
+
+  - feature_id: position.next_day_spike_then_fade_confirmed
+    display_name: 次日冲高回落确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 反包次日出现冲高后明显回落的失败延续行为。
+    related_terms: [engulfing_next_day_fade]
+
+  - feature_id: position.close_below_engulfing_support_ratio
+    display_name: 失守反包承接位比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对反包承接位的比例，小于 1 表示修复延续失效。
+    related_terms: [engulfing_next_day_fade]
+
+  - feature_id: position.reseal_success_confirmed
+    display_name: 回封成功确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的此前已完成一次有效回封确认。
+    related_terms: [reseal_board_break_loss]
+
+  - feature_id: position.second_board_break_confirmed
+    display_name: 二次炸板确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 回封后再次出现炸板或失守封板结构。
+    related_terms: [reseal_board_break_loss]
+
+  - feature_id: position.close_below_reseal_support_ratio
+    display_name: 失守回封承接位比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对回封承接位的比例，小于 1 表示回封结构失守。
+    related_terms: [reseal_board_break_loss]
+
+  - feature_id: position.first_down_day_confirmed
+    display_name: 首阴确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 反包修复后首个明显转弱阴线已经出现并获得确认。
+    related_terms: [engulfing_first_down_day_confirmed]
+
+  - feature_id: position.selling_pressure_score
+    display_name: 抛压强度得分
+    scope: position
+    category: orderflow
+    value_type: number
+    description: 抛压释放、承接消耗和回落强度的综合评分，分值越高代表抛压越重。
+    related_terms: [engulfing_first_down_day_confirmed]
+
+  - feature_id: candidate.gap_up_open_confirmed
+    display_name: 高开确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的当日已出现显著高开行为并建立开盘攻击结构。
+    related_terms: [gap_up_fade_breakdown]
+
+  - feature_id: candidate.intraday_fade_from_open_ratio
+    display_name: 日内高开回落比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 从高开后高点或攻击位回落的幅度比例。
+    related_terms: [gap_up_fade_breakdown]
+
+  - feature_id: candidate.close_below_gap_attack_ratio
+    display_name: 收盘失守高开攻击位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对高开攻击位的比例，小于 1 表示高开结构失守。
+    related_terms: [gap_up_fade_breakdown]
+
+  - feature_id: market.gap_up_follow_through_rate
+    display_name: 高开延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 高开个股最终形成有效延续和强势收盘的比例。
+    related_terms: [gap_up_fade_breakdown]
+
+  - feature_id: position.acceleration_phase_confirmed
+    display_name: 加速阶段确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 个股已进入短线加速上冲阶段。
+    related_terms: [acceleration_volume_stall]
+
+  - feature_id: position.volume_expansion_ratio
+    display_name: 放量比例
+    scope: position
+    category: volume_price
+    value_type: number
+    description: 当前量能相对基准量能的放大比例。
+    related_terms: [acceleration_volume_stall]
+
+  - feature_id: position.price_progress_stall_ratio
+    display_name: 价格推进停滞比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 价格推进相对预期加速路径的比例，越低越接近滞涨或冲高回落。
+    related_terms: [acceleration_volume_stall]
+
+  - feature_id: candidate.intraday_spike_attack_confirmed
+    display_name: 冲高攻击确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的盘中已出现明显加速上冲并尝试打板的攻击行为。
+    related_terms: [spike_fail_before_limit_pullback]
+
+  - feature_id: candidate.failed_to_limit_board_confirmed
+    display_name: 未能封板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 冲高过程中尝试封板但未能稳住涨停结构。
+    related_terms: [spike_fail_before_limit_pullback]
+
+  - feature_id: candidate.pullback_from_intraday_high_ratio
+    display_name: 从日内高点回落比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 标的从日内冲高高点回落的幅度比例，用于识别冲高失败后的回撤强度。
+    related_terms: [spike_fail_before_limit_pullback]
+
+  - feature_id: candidate.close_below_intraday_attack_ratio
+    display_name: 收盘失守日内攻击位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对日内攻击位的比例，小于 1 表示攻击结构被明显破坏。
+    related_terms: [spike_fail_before_limit_pullback]
+
+  - feature_id: market.spike_to_limit_success_rate
+    display_name: 冲高打板成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 当日冲高尝试打板个股中最终稳住强势封板结构的比例。
+    related_terms: [spike_fail_before_limit_pullback]
+
+  - feature_id: position.second_wave_repair_attempted
+    display_name: 二波修复尝试
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在首次修复后再次尝试发动二波修复或二次突破。
+    related_terms: [second_wave_repair_failed]
+
+  - feature_id: position.second_wave_breakout_ratio
+    display_name: 二波突破比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对二波修复突破位的比例，小于 1 表示重新跌回二波突破位下方。
+    related_terms: [second_wave_repair_failed]
+
+  - feature_id: position.repair_follow_through_failed
+    display_name: 修复延续失败
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 修复动作未能获得后续承接和延续，出现明显衰减或再度转弱。
+    related_terms: [second_wave_repair_failed]
+
+  - feature_id: candidate.intraday_ma_break_confirmed
+    display_name: 分时破均线确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的盘中已跌破关键分时均线或均价线结构。
+    related_terms: [intraday_break_ma_weakening]
+
+  - feature_id: candidate.intraday_ma_reclaim_failed
+    display_name: 回拉均线失败
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 跌破分时均线后尝试回拉但未能重新站稳均线结构。
+    related_terms: [intraday_break_ma_weakening]
+
+  - feature_id: candidate.close_below_intraday_ma_ratio
+    display_name: 收盘失守分时均线比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对分时均线的比例，小于 1 表示收盘仍处于均线下方。
+    related_terms: [intraday_break_ma_weakening]
+
+  - feature_id: market.intraday_trend_hold_rate
+    display_name: 日内趋势维持率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 盘中强势股在跌破分时均线后仍能重新修复并保持趋势的比例。
+    related_terms: [intraday_break_ma_weakening]
+
+  - feature_id: candidate.pullback_ma20_support_confirmed
+    display_name: 回踩20日线企稳
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的回踩 20 日线后出现止跌企稳并重新获得支撑确认。
+    related_terms: [pullback_ma20_support]
+
+  - feature_id: candidate.close_to_ma20_ratio
+    display_name: 收盘相对20日线比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前收盘价相对 20 日线的比例，大于等于 1 表示仍站在线上。
+    related_terms: [pullback_ma20_support]
+
+  - feature_id: candidate.ma20_trend_slope
+    display_name: 20日线斜率
+    scope: symbol
+    category: trend_strength
+    value_type: number
+    description: 20 日线的趋势斜率，大于 0 表示中短趋势仍保持向上。
+    related_terms: [pullback_ma20_support]
+
+  - feature_id: candidate.pullback_ma60_support_confirmed
+    display_name: 回踩60日线企稳
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的回踩 60 日线后出现止跌企稳并重新获得支撑确认。
+    related_terms: [pullback_ma60_support]
+
+  - feature_id: candidate.close_to_ma60_ratio
+    display_name: 收盘相对60日线比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前收盘价相对 60 日线的比例，大于等于 1 表示仍站在线上。
+    related_terms: [pullback_ma60_support]
+
+  - feature_id: candidate.ma60_trend_slope
+    display_name: 60日线斜率
+    scope: symbol
+    category: trend_strength
+    value_type: number
+    description: 60 日线的趋势斜率，大于 0 表示中期趋势仍保持向上。
+    related_terms: [pullback_ma60_support]
+
+  - feature_id: market.trend_pullback_rebound_rate
+    display_name: 趋势回踩修复成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 市场中趋势标的回踩关键均线后重新企稳修复的比例。
+    related_terms: [pullback_ma20_support, pullback_ma60_support]
+
+  - feature_id: position.high_level_sideways_confirmed
+    display_name: 高位横盘确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的已在相对高位形成横盘整理结构。
+    related_terms: [high_level_sideways_flush]
+
+  - feature_id: position.intraday_flush_confirmed
+    display_name: 盘中跳水确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 横盘后盘中出现快速跳水或明显瀑布式回落行为。
+    related_terms: [high_level_sideways_flush]
+
+  - feature_id: position.flush_from_sideways_high_ratio
+    display_name: 横盘高点跳水比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 从横盘整理高点回落的幅度比例，用于识别跳水强度。
+    related_terms: [high_level_sideways_flush]
+
+  - feature_id: position.close_below_sideways_pivot_ratio
+    display_name: 收盘失守横盘支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对横盘整理支点的比例，小于 1 表示整理结构被破坏。
+    related_terms: [high_level_sideways_flush]
+
+  - feature_id: candidate.low_volume_board_yesterday_confirmed
+    display_name: 昨日缩量上板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的上一交易日以缩量方式完成上板或强封确认。
+    related_terms: [low_volume_board_next_day_breakdown]
+
+  - feature_id: candidate.next_day_open_below_board_expectation_ratio
+    display_name: 次日开盘低于板上预期比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日开盘相对缩量上板后的强势预期比例，小于 1 表示明显低于预期。
+    related_terms: [low_volume_board_next_day_breakdown]
+
+  - feature_id: candidate.close_below_board_support_ratio
+    display_name: 收盘失守板上承接位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对板上承接或关键支撑位的比例，小于 1 表示接力结构失守。
+    related_terms: [low_volume_board_next_day_breakdown]
+
+  - feature_id: market.low_volume_board_follow_through_rate
+    display_name: 缩量板延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 缩量上板个股在次日形成强延续或继续强势收盘的比例。
+    related_terms: [low_volume_board_next_day_breakdown]
+
+  - feature_id: candidate.tail_repair_attempt_confirmed
+    display_name: 尾盘抢修尝试确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在尾盘出现明显抢修、抢筹或回拉修复动作。
+    related_terms: [tail_repair_no_follow_through]
+
+  - feature_id: candidate.next_day_repair_follow_ratio
+    display_name: 次日修复跟随比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日价格和量能对尾盘抢修动作的跟随程度，越低表示延续越差。
+    related_terms: [tail_repair_no_follow_through]
+
+  - feature_id: candidate.next_day_close_below_repair_pivot_ratio
+    display_name: 次日收盘失守修复支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日收盘相对尾盘修复支点的比例，小于 1 表示修复结构重新失守。
+    related_terms: [tail_repair_no_follow_through]
+
+  - feature_id: market.tail_repair_success_rate
+    display_name: 尾盘抢修成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 尾盘抢修个股在次日形成有效修复延续的比例。
+    related_terms: [tail_repair_no_follow_through]
+
+  - feature_id: position.high_volume_stall_confirmed
+    display_name: 高位放量滞胀确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在高位已出现明显放量但价格推进停滞的滞胀结构。
+    related_terms: [high_volume_stall_reversal]
+
+  - feature_id: position.close_below_stall_pivot_ratio
+    display_name: 收盘失守滞胀支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对滞胀关键支点的比例，小于 1 表示滞胀后已转为明显回落。
+    related_terms: [high_volume_stall_reversal]
+
+  - feature_id: position.rebound_over_previous_high_attempted
+    display_name: 反抽过前高尝试
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在反抽过程中曾尝试突破前高或关键套牢区。
+    related_terms: [rebound_over_previous_high_failed]
+
+  - feature_id: position.previous_high_breakout_ratio
+    display_name: 前高突破比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对前高突破位的比例，小于 1 表示再次跌回前高之下。
+    related_terms: [rebound_over_previous_high_failed]
+
+  - feature_id: position.breakout_hold_failed
+    display_name: 突破站稳失败
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 突破前高后未能站稳、承接不足并快速回落的失败信号。
+    related_terms: [rebound_over_previous_high_failed]
+
+  - feature_id: candidate.afternoon_reflow_confirmed
+    display_name: 午后回流确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在午后获得明显资金回流并形成修复攻击结构。
+    related_terms: [afternoon_reflow_next_day_below_expectation]
+
+  - feature_id: candidate.next_day_open_below_reflow_expectation_ratio
+    display_name: 次日开盘低于回流预期比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日开盘相对午后回流后的强势预期比例，小于 1 表示明显低于预期。
+    related_terms: [afternoon_reflow_next_day_below_expectation]
+
+  - feature_id: candidate.next_day_close_below_reflow_pivot_ratio
+    display_name: 次日收盘失守回流支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日收盘相对午后回流支点的比例，小于 1 表示回流结构未能延续。
+    related_terms: [afternoon_reflow_next_day_below_expectation]
+
+  - feature_id: market.afternoon_reflow_follow_through_rate
+    display_name: 午后回流延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 午后回流个股在次日形成正向溢价和跟随延续的比例。
+    related_terms: [afternoon_reflow_next_day_below_expectation]
+
+  - feature_id: position.board_break_after_limit_attempted
+    display_name: 炸板后回落确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的在冲板或封板尝试后出现炸板并进入回落过程。
+    related_terms: [board_fade_tail_breakdown]
+
+  - feature_id: position.tail_breakdown_confirmed
+    display_name: 尾盘失守确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的在尾盘阶段未能止跌并继续失守关键承接结构。
+    related_terms: [board_fade_tail_breakdown]
+
+  - feature_id: position.close_below_board_pivot_ratio
+    display_name: 收盘失守板上支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对板上承接支点的比例，小于 1 表示炸板后结构失守。
+    related_terms: [board_fade_tail_breakdown]
+
+  - feature_id: position.weak_repair_confirmed
+    display_name: 弱修复确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的仅出现弱修复或弱反抽，未形成强势重夺关键位的修复结构。
+    related_terms: [weak_repair_next_day_gap_down_kill]
+
+  - feature_id: position.next_day_gap_down_confirmed
+    display_name: 次日低开确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 修复后的下一交易日以明显低开方式开出，反映延续预期落空。
+    related_terms: [weak_repair_next_day_gap_down_kill, weak_to_strong_failed_gap_down_no_acceptance]
+
+  - feature_id: position.next_day_close_below_repair_support_ratio
+    display_name: 次日收盘失守修复支撑比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 次日收盘相对修复支撑位的比例，小于 1 表示修复结构彻底失效。
+    related_terms: [weak_repair_next_day_gap_down_kill]
+
+  - feature_id: market.sector_reflow_confirmed
+    display_name: 板块回流确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 所属题材或板块已出现资金回流和热度回暖的确认信号。
+    related_terms: [sector_reflow_symbol_lagging]
+
+  - feature_id: candidate.sector_relative_lag_rank
+    display_name: 板块内掉队排名
+    scope: symbol
+    category: rank
+    value_type: number
+    description: 个股在所属板块回流时的相对掉队排名，数值越大代表越靠后。
+    related_terms: [sector_reflow_symbol_lagging]
+
+  - feature_id: candidate.reflow_follow_strength_score
+    display_name: 回流跟随强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 个股对板块回流的价格、量能和承接跟随程度综合评分。
+    related_terms: [sector_reflow_symbol_lagging]
+
+  - feature_id: candidate.close_below_reflow_reference_ratio
+    display_name: 收盘失守回流参考位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对板块回流参考位的比例，小于 1 表示未能跟随回流并重新走弱。
+    related_terms: [sector_reflow_symbol_lagging]
+
+  - feature_id: candidate.gap_up_instant_limit_confirmed
+    display_name: 高开秒板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的高开后短时间内直接完成秒板或近似秒板确认。
+    related_terms: [gap_up_instant_limit_acceptance_collapse]
+
+  - feature_id: candidate.instant_limit_open_board_confirmed
+    display_name: 秒板后开板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 秒板后涨停结构被打开，进入承接检验阶段。
+    related_terms: [gap_up_instant_limit_acceptance_collapse]
+
+  - feature_id: candidate.acceptance_collapse_confirmed
+    display_name: 承接塌陷确认
+    scope: symbol
+    category: orderflow
+    value_type: boolean
+    description: 开板后买盘承接明显衰减、抛压快速释放，形成承接塌陷。
+    related_terms: [gap_up_instant_limit_acceptance_collapse]
+
+  - feature_id: candidate.close_below_instant_limit_pivot_ratio
+    display_name: 收盘失守秒板支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对秒板关键支点的比例，小于 1 表示秒板后强势结构失守。
+    related_terms: [gap_up_instant_limit_acceptance_collapse]
+
+  - feature_id: market.instant_limit_follow_through_rate
+    display_name: 秒板延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 秒板个股最终形成有效封板或强势延续的比例。
+    related_terms: [gap_up_instant_limit_acceptance_collapse]
+
+  - feature_id: candidate.low_level_first_board_confirmed
+    display_name: 低位首板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的处于相对低位并完成首板确认。
+    related_terms: [low_level_first_board_no_premium]
+
+  - feature_id: candidate.next_day_open_premium_ratio
+    display_name: 次日开盘溢价比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日开盘相对首板后正常溢价预期的比例，小于 1 表示溢价不足。
+    related_terms: [low_level_first_board_no_premium]
+
+  - feature_id: candidate.next_day_close_below_first_board_support_ratio
+    display_name: 次日收盘失守首板支撑比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 次日收盘相对首板支撑位的比例，小于 1 表示首板结构延续失败。
+    related_terms: [low_level_first_board_no_premium]
+
+  - feature_id: market.first_board_premium_rate
+    display_name: 首板溢价率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 首板个股次日能给出正向溢价和强势承接的比例。
+    related_terms: [low_level_first_board_no_premium]
+
+  - feature_id: market.sector_divergence_confirmed
+    display_name: 板块分歧确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 所属板块已进入明显分歧状态，核心与后排表现开始拉开。
+    related_terms: [sector_divergence_leader_follower_split]
+
+  - feature_id: candidate.leader_follower_divergence_score
+    display_name: 核心跟风分化得分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 用于衡量板块核心与跟风之间强度差异的综合分值，越高代表分化越明显。
+    related_terms: [sector_divergence_leader_follower_split]
+
+  - feature_id: candidate.follow_strength_vs_leader_ratio
+    display_name: 跟风相对核心强度比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 跟风股相对核心股的强度比例，小于 1 表示明显掉队。
+    related_terms: [sector_divergence_leader_follower_split]
+
+  - feature_id: candidate.close_below_divergence_reference_ratio
+    display_name: 收盘失守分歧参考位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对分歧阶段参考位的比例，小于 1 表示分歧中已失守关键位。
+    related_terms: [sector_divergence_leader_follower_split]
+
+  - feature_id: candidate.one_word_turnover_open_confirmed
+    display_name: 一字换手开板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 一字板被打开并进入换手承接观察阶段。
+    related_terms: [one_word_turnover_acceptance_decay]
+
+  - feature_id: candidate.turnover_acceptance_decay_score
+    display_name: 换手承接衰减分
+    scope: symbol
+    category: orderflow
+    value_type: number
+    description: 一字换手后买盘承接、抛压释放和回封意愿衰减程度的综合评分，越高代表衰减越明显。
+    related_terms: [one_word_turnover_acceptance_decay]
+
+  - feature_id: candidate.close_below_turnover_pivot_ratio
+    display_name: 收盘失守换手支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对换手承接支点的比例，小于 1 表示一字换手后强势结构失守。
+    related_terms: [one_word_turnover_acceptance_decay]
+
+  - feature_id: market.one_word_turnover_success_rate
+    display_name: 一字换手成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 一字换手个股中最终形成稳定承接或再度走强的比例。
+    related_terms: [one_word_turnover_acceptance_decay]
+
+  - feature_id: position.board_pullback_failed_confirmed
+    display_name: 冲板回落失败确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的冲板未果后已经确认进入回落失败结构。
+    related_terms: [board_pullback_next_day_gap_down_confirmed]
+
+  - feature_id: position.close_below_pullback_support_ratio
+    display_name: 收盘失守回落支撑比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对冲板回落支撑位的比例，小于 1 表示回落弱势被次日继续确认。
+    related_terms: [board_pullback_next_day_gap_down_confirmed]
+
+  - feature_id: market.sector_repair_confirmed
+    display_name: 板块修复确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 所属板块已出现修复回流和情绪回暖的确认信号。
+    related_terms: [sector_repair_leader_only_followers_stall]
+
+  - feature_id: candidate.leader_only_repair_gap_score
+    display_name: 核心独强修复落差分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 板块修复中核心股与后排个股之间修复强度落差的综合评分，越高代表独强越明显。
+    related_terms: [sector_repair_leader_only_followers_stall]
+
+  - feature_id: candidate.follower_stall_strength_ratio
+    display_name: 后排失速强度比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 后排跟随股相对理想修复强度的比例，越低代表跟随越弱。
+    related_terms: [sector_repair_leader_only_followers_stall]
+
+  - feature_id: candidate.close_below_repair_follow_reference_ratio
+    display_name: 收盘失守修复跟随参考位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对修复跟随参考位的比例，小于 1 表示修复阶段后排已明显失速。
+    related_terms: [sector_repair_leader_only_followers_stall]
+
+  - feature_id: position.high_level_board_break_confirmed
+    display_name: 高位炸板确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的已在高位出现炸板并确认强势结构破坏。
+    related_terms: [high_level_board_break_afternoon_second_kill]
+
+  - feature_id: position.afternoon_second_kill_confirmed
+    display_name: 午后再杀确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 炸板后午后再次出现明显集中抛压与二次杀跌行为。
+    related_terms: [high_level_board_break_afternoon_second_kill]
+
+  - feature_id: position.close_below_afternoon_second_kill_pivot_ratio
+    display_name: 收盘失守午后再杀支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对午后再杀关键支点的比例，小于 1 表示再杀结构确认。
+    related_terms: [high_level_board_break_afternoon_second_kill]
+
+  - feature_id: position.weak_to_strong_attempted
+    display_name: 弱转强尝试确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的已出现从弱到强的修复尝试，进入预期兑现阶段。
+    related_terms: [weak_to_strong_fail_consensus_take_profit, weak_to_strong_failed_gap_down_no_acceptance]
+
+  - feature_id: position.weak_to_strong_failed_confirmed
+    display_name: 弱转强失败确认
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 弱转强未能站稳关键修复位并确认失败。
+    related_terms: [weak_to_strong_fail_consensus_take_profit, weak_to_strong_failed_gap_down_no_acceptance]
+
+  - feature_id: position.consensus_take_profit_confirmed
+    display_name: 一致兑现确认
+    scope: position
+    category: orderflow
+    value_type: boolean
+    description: 市场从修复预期转向一致兑现，出现集中卖出和承接退化。
+    related_terms: [weak_to_strong_fail_consensus_take_profit]
+
+  - feature_id: position.close_below_reclaim_pivot_ratio
+    display_name: 收盘失守修复支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对修复重夺支点的比例，小于 1 表示修复结构失败。
+    related_terms: [weak_to_strong_fail_consensus_take_profit, weak_to_strong_failed_gap_down_no_acceptance]
+
+  - feature_id: market.repair_market_confirmed
+    display_name: 修复行情确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 市场整体进入修复阶段并出现核心股修复带动信号。
+    related_terms: [repair_market_core_secondary_switch]
+
+  - feature_id: candidate.secondary_core_switch_confirmed
+    display_name: 次核心切换确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 次核心已接替原核心成为新的资金聚焦点。
+    related_terms: [repair_market_core_secondary_switch]
+
+  - feature_id: candidate.close_below_core_switch_reference_ratio
+    display_name: 收盘失守核心切换参考位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对核心切换参考位的比例，小于 1 表示旧核心已明显掉队。
+    related_terms: [repair_market_core_secondary_switch]
+
+  - feature_id: candidate.consensus_repair_confirmed
+    display_name: 一致修复确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在修复日形成了较强一致性的修复确认结构。
+    related_terms: [consensus_repair_next_day_acceptance_vanish]
+
+  - feature_id: candidate.next_day_acceptance_vanish_confirmed
+    display_name: 次日承接消失确认
+    scope: symbol
+    category: orderflow
+    value_type: boolean
+    description: 次日买盘承接明显不足，修复日形成的承接优势快速消失。
+    related_terms: [consensus_repair_next_day_acceptance_vanish]
+
+  - feature_id: candidate.close_below_repair_acceptance_pivot_ratio
+    display_name: 收盘失守修复承接支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对修复承接支点的比例，小于 1 表示修复后的承接结构被破坏。
+    related_terms: [consensus_repair_next_day_acceptance_vanish]
+
+  - feature_id: market.consensus_repair_follow_through_rate
+    display_name: 一致修复延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 修复日形成强一致个股在次日继续给出延续和承接的比例。
+    related_terms: [consensus_repair_next_day_acceptance_vanish]
+
+  - feature_id: position.accelerated_catch_up_confirmed
+    display_name: 加速补涨确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 标的已进入补涨加速阶段，短线情绪和跟风资金快速聚集。
+    related_terms: [accelerated_catch_up_afternoon_blowup]
+
+  - feature_id: position.afternoon_blowup_confirmed
+    display_name: 午后炸裂确认
+    scope: position
+    category: event_state
+    value_type: boolean
+    description: 午后出现快速炸裂式回落、承接塌陷或情绪反转。
+    related_terms: [accelerated_catch_up_afternoon_blowup]
+
+  - feature_id: position.close_below_catch_up_pivot_ratio
+    display_name: 收盘失守补涨支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对补涨加速支点的比例，小于 1 表示补涨结构已明显走坏。
+    related_terms: [accelerated_catch_up_afternoon_blowup]
+
+  - feature_id: market.cooling_end_confirmed
+    display_name: 退潮末端确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 市场已运行到退潮末端阶段，局部出现反核或修复尝试。
+    related_terms: [cooling_end_counter_nuke_failed]
+
+  - feature_id: position.engulfing_board_attempt_confirmed
+    display_name: 反包冲板尝试确认
+    scope: position
+    category: board_behavior
+    value_type: boolean
+    description: 标的完成反包后继续尝试冲板，进入高位兑现敏感阶段。
+    related_terms: [engulfing_board_blowup_take_profit]
+
+  - feature_id: position.board_blowup_take_profit_confirmed
+    display_name: 炸裂兑现确认
+    scope: position
+    category: orderflow
+    value_type: boolean
+    description: 冲板后快速炸裂并出现明显兑现盘主导的确认信号。
+    related_terms: [engulfing_board_blowup_take_profit]
+
+  - feature_id: position.close_below_engulfing_board_pivot_ratio
+    display_name: 收盘失守反包冲板支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对反包冲板关键支点的比例，小于 1 表示冲板后的强势结构失守。
+    related_terms: [engulfing_board_blowup_take_profit]
+
+  - feature_id: market.emotion_repair_confirmed
+    display_name: 情绪修复确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 市场整体情绪已从退潮或弱分歧阶段进入修复阶段，并出现持续性修复信号。
+    related_terms: [emotion_repair_second_divergence_failed, emotion_repair_afternoon_reversal_kill]
+
+  - feature_id: candidate.second_divergence_failed_confirmed
+    display_name: 二次分歧失败确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 修复行情中个股遭遇二次分歧后未能完成再修复，转为失败确认。
+    related_terms: [emotion_repair_second_divergence_failed]
+
+  - feature_id: candidate.repair_strength_drop_ratio
+    display_name: 修复强度回落比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 个股相对前一修复阶段的强度回落比例，越低代表修复衰减越明显。
+    related_terms: [emotion_repair_second_divergence_failed]
+
+  - feature_id: candidate.close_below_repair_divergence_pivot_ratio
+    display_name: 收盘失守修复分歧支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对修复分歧支点的比例，小于 1 表示二次分歧后再修复失败。
+    related_terms: [emotion_repair_second_divergence_failed]
+
+  - feature_id: market.cooling_tail_confirmed
+    display_name: 退潮尾声确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 市场处于退潮尾声阶段，低位试错开始出现但整体承接仍偏弱。
+    related_terms: [cooling_tail_low_level_first_board_follow_insufficient]
+
+  - feature_id: candidate.low_level_first_board_follow_ratio
+    display_name: 低位首板跟随比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 低位首板后次日或后续时段的跟随程度比例，越低代表接力不足。
+    related_terms: [cooling_tail_low_level_first_board_follow_insufficient]
+
+  - feature_id: candidate.close_below_low_level_first_board_support_ratio
+    display_name: 收盘失守低位首板支撑比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对低位首板支撑位的比例，小于 1 表示低位试错结构失守。
+    related_terms: [cooling_tail_low_level_first_board_follow_insufficient]
+
+  - feature_id: candidate.consensus_reflow_confirmed
+    display_name: 一致回流确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的盘中已形成较强一致性的回流确认结构。
+    related_terms: [consensus_reflow_tail_weakening]
+
+  - feature_id: candidate.tail_weakening_confirmed
+    display_name: 尾盘走弱确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在尾盘出现承接走弱、资金回流衰减或冲高回落确认。
+    related_terms: [consensus_reflow_tail_weakening]
+
+  - feature_id: candidate.close_below_reflow_tail_pivot_ratio
+    display_name: 收盘失守回流尾盘支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对回流尾盘支点的比例，小于 1 表示回流后的强势结构失守。
+    related_terms: [consensus_reflow_tail_weakening]
+
+  - feature_id: market.consensus_reflow_hold_rate
+    display_name: 一致回流维持率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 一致回流个股能够维持到收盘并保持强势结构的比例。
+    related_terms: [consensus_reflow_tail_weakening]
+
+  - feature_id: candidate.next_day_strengthening_ratio
+    display_name: 次日加强比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 卡位成功后次日相对预期继续加强的比例，小于 1 表示不加强或弱化。
+    related_terms: [overtake_success_next_day_no_strengthening]
+
+  - feature_id: candidate.close_below_overtake_pivot_ratio
+    display_name: 收盘失守卡位支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对卡位成功支点的比例，小于 1 表示卡位优势难以维持。
+    related_terms: [overtake_success_next_day_no_strengthening]
+
+  - feature_id: market.cooling_mid_confirmed
+    display_name: 退潮中继确认
+    scope: market
+    category: market_breadth
+    value_type: boolean
+    description: 市场处于退潮中继阶段，整体承接不足但局部仍有弱修复尝试。
+    related_terms: [cooling_mid_weak_repair_rebreak]
+
+  - feature_id: position.rebreak_after_weak_repair_confirmed
+    display_name: 弱修复后再破位确认
+    scope: position
+    category: exit_signal
+    value_type: boolean
+    description: 弱修复未能转强，随后再次跌破关键位并确认走弱。
+    related_terms: [cooling_mid_weak_repair_rebreak]
+
+  - feature_id: position.close_below_weak_repair_pivot_ratio
+    display_name: 收盘失守弱修复支点比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对弱修复支点的比例，小于 1 表示弱修复结构再次被破坏。
+    related_terms: [cooling_mid_weak_repair_rebreak]
+
+  - feature_id: candidate.high_level_blowup_confirmed
+    display_name: 高位炸板确认
+    scope: symbol
+    category: board_behavior
+    value_type: boolean
+    description: 标的已在高位出现炸板并进入次日承接验证阶段。
+    related_terms: [high_level_blowup_next_day_thin_volume_drift]
+
+  - feature_id: candidate.next_day_thin_volume_confirmed
+    display_name: 次日缩量确认
+    scope: symbol
+    category: volume_price
+    value_type: boolean
+    description: 炸板后的下一交易日成交明显缩量，未见主动修复量能。
+    related_terms: [high_level_blowup_next_day_thin_volume_drift]
+
+  - feature_id: candidate.close_below_blowup_support_ratio
+    display_name: 收盘失守炸板支撑比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对炸板后关键支撑位的比例，小于 1 表示炸板后的弱势结构继续确认。
+    related_terms: [high_level_blowup_next_day_thin_volume_drift]
+
+  - feature_id: candidate.platform_breakout_confirmed
+    display_name: 中期平台突破确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的已突破中期整理平台并形成有效确认。
+    related_terms: [midterm_platform_breakout]
+
+  - feature_id: candidate.close_above_platform_ratio
+    display_name: 收盘高于平台比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对中期平台上沿的比例，大于 1 表示突破后仍站稳平台上方。
+    related_terms: [midterm_platform_breakout]
+
+  - feature_id: candidate.volume_ratio_to_20d_avg
+    display_name: 相对20日均量比
+    scope: symbol
+    category: volume_price
+    value_type: number
+    description: 当前成交量相对 20 日平均成交量的倍数，用于识别中线突破是否放量成立。
+    related_terms: [midterm_platform_breakout]
+
+  - feature_id: candidate.midterm_trend_slope
+    display_name: 中期趋势斜率
+    scope: symbol
+    category: trend
+    value_type: number
+    description: 标的中期趋势斜率，正值代表中期趋势向上。
+    related_terms: [midterm_platform_breakout]
+
+  - feature_id: market.midterm_breakout_success_rate
+    display_name: 中期突破成功率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 市场中中期平台突破后仍能延续强势的比例。
+    related_terms: [midterm_platform_breakout]
+
+  - feature_id: candidate.yearline_reclaim_confirmed
+    display_name: 年线收复确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的已重新站回年线并形成初步确认。
+    related_terms: [long_term_yearline_reclaim]
+
+  - feature_id: candidate.close_to_ma250_ratio
+    display_name: 收盘相对年线比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对 250 日均线的比例，大于 1 表示重新站上年线。
+    related_terms: [long_term_yearline_reclaim]
+
+  - feature_id: candidate.ma250_trend_slope
+    display_name: 年线趋势斜率
+    scope: symbol
+    category: trend
+    value_type: number
+    description: 年线的方向斜率，正值代表长期趋势已不再向下。
+    related_terms: [long_term_yearline_reclaim]
+
+  - feature_id: market.long_term_trend_participation_rate
+    display_name: 长线趋势参与率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 市场中长期趋势结构向上的标的占比，用于确认长线环境是否改善。
+    related_terms: [long_term_yearline_reclaim]
+
+  - feature_id: position.close_below_ma120_ratio
+    display_name: 收盘失守120日线比例
+    scope: position
+    category: price_structure
+    value_type: number
+    description: 当前价格相对 120 日均线的比例，小于 1 表示中长期支撑被跌破。
+    related_terms: [long_term_ma120_break_exit]
+
+  - feature_id: position.ma120_trend_slope
+    display_name: 120日线趋势斜率
+    scope: position
+    category: trend
+    value_type: number
+    description: 120 日均线方向斜率，负值代表中长期趋势走弱。
+    related_terms: [long_term_ma120_break_exit]
+
+  - feature_id: position.trailing_drawdown_ratio
+    display_name: 持仓回撤比例
+    scope: position
+    category: pnl
+    value_type: number
+    description: 当前持仓从阶段高点回撤的比例，用于确认长线趋势破坏是否扩大。
+    related_terms: [long_term_ma120_break_exit]
+
+  - feature_id: candidate.earnings_positive_surprise_confirmed
+    display_name: 业绩超预期确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的最新业绩或预告明显超出市场一致预期。
+    related_terms: [event_earnings_surprise_breakout]
+
+  - feature_id: candidate.event_window_strength_score
+    display_name: 事件窗口强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 事件触发窗口内价格、量能和关注度的综合强度得分。
+    related_terms: [event_earnings_surprise_breakout]
+
+  - feature_id: candidate.close_above_event_breakout_ratio
+    display_name: 收盘高于事件突破位比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对事件催化突破位的比例，大于 1 表示事件突破保持成立。
+    related_terms: [event_earnings_surprise_breakout]
+
+  - feature_id: market.event_driven_follow_through_rate
+    display_name: 事件驱动延续率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 事件驱动个股在触发后仍能形成延续上涨的比例。
+    related_terms: [event_earnings_surprise_breakout]
+
+  - feature_id: candidate.orderflow_sweep_reclaim_confirmed
+    display_name: 扫单回补确认
+    scope: symbol
+    category: orderflow
+    value_type: boolean
+    description: 盘口出现扫单后迅速回补，形成微结构上的强承接确认。
+    related_terms: [hft_orderflow_reclaim]
+
+  - feature_id: candidate.micro_pullback_reclaim_ratio
+    display_name: 微回落回补比例
+    scope: symbol
+    category: orderflow
+    value_type: number
+    description: 盘口短时回落后重新回补的比例，大于 1 代表回补确认成立。
+    related_terms: [hft_orderflow_reclaim]
+
+  - feature_id: market.microstructure_stability_score
+    display_name: 微结构稳定度得分
+    scope: market
+    category: orderflow
+    value_type: number
+    description: 当前盘口环境稳定度综合得分，用于过滤高频噪音过大的交易时段。
+    related_terms: [hft_orderflow_reclaim]
+
+  - feature_id: market.regime_state
+    display_name: 市场状态阶段
+    scope: market
+    category: market_state
+    value_type: enum
+    description: 市场整体状态阶段，可取 bull、sideways、bear 等值，用于区分牛市、震荡市和熊市环境。
+    related_terms: [market_bull_trend_allow_entry, market_sideways_selective_entry, market_bear_freeze_entry]
+
+  - feature_id: market.breadth_above_ma60_ratio
+    display_name: 站上60日线广度比例
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 市场中站上 60 日均线的标的占比，用于描述市场中期广度强弱。
+    related_terms: [market_bull_trend_allow_entry, market_sideways_selective_entry, market_bear_freeze_entry]
+
+  - feature_id: market.index_above_ma120_ratio
+    display_name: 指数相对120日线比例
+    scope: market
+    category: trend
+    value_type: number
+    description: 代表性指数相对 120 日均线的位置比例，大于 1 说明指数重新站稳中长期趋势线。
+    related_terms: [market_bull_trend_allow_entry]
+
+  - feature_id: market.trend_strength_score
+    display_name: 市场趋势强度分
+    scope: market
+    category: trend
+    value_type: number
+    description: 综合价格趋势、广度和强势股延续性的市场趋势强度得分。
+    related_terms: [market_bull_trend_allow_entry]
+
+  - feature_id: market.volatility_shock_score
+    display_name: 市场波动冲击分
+    scope: market
+    category: volatility
+    value_type: number
+    description: 市场短期波动冲击程度得分，数值越高说明系统性冲击越强。
+    related_terms: [market_sideways_selective_entry, market_bear_freeze_entry]
+
+  - feature_id: market.drawdown_from_recent_high
+    display_name: 市场距近期高点回撤比例
+    scope: market
+    category: volatility
+    value_type: number
+    description: 市场代表性指数相对近期高点的回撤比例，用于区分震荡与系统性走弱。
+    related_terms: [market_sideways_selective_entry, market_bear_freeze_entry]
+
+  - feature_id: market.high_level_blowup_repair_rate
+    display_name: 高位炸板修复率
+    scope: market
+    category: market_breadth
+    value_type: number
+    description: 高位炸板个股次日能够完成修复或止跌回稳的比例。
+    related_terms: [high_level_blowup_next_day_thin_volume_drift]
+
+  - feature_id: candidate.afternoon_reversal_kill_confirmed
+    display_name: 午后反杀确认
+    scope: symbol
+    category: event_state
+    value_type: boolean
+    description: 标的在午后出现明显反向杀跌，修复预期快速转弱。
+    related_terms: [emotion_repair_afternoon_reversal_kill]
+
+  - feature_id: candidate.close_below_afternoon_repair_pivot_ratio
+    display_name: 收盘失守午后修复支点比例
+    scope: symbol
+    category: price_structure
+    value_type: number
+    description: 当前价格相对午后修复支点的比例，小于 1 表示午后反杀已破坏修复结构。
+    related_terms: [emotion_repair_afternoon_reversal_kill]
+
+  - feature_id: candidate.repair_follow_strength_score
+    display_name: 修复跟随强度分
+    scope: symbol
+    category: score
+    value_type: number
+    description: 个股在情绪修复阶段对市场修复节奏的跟随质量综合评分。
+    related_terms: [emotion_repair_afternoon_reversal_kill]

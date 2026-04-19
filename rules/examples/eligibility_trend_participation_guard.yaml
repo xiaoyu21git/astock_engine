@@ -1,0 +1,55 @@
+version: 1
+namespace: trading.eligibility.trend_participation_guard
+rules:
+  - id: trend-participation-guard-pass
+    name: 趋势参与资格过滤规则
+    stage: eligibility
+    priority: 88
+    description: 成交活跃度、趋势斜率与均线偏离仍处于可参与区间时，允许进入后续趋势信号确认。
+    tags: [a_share_trend, eligibility, liquidity, trend, ma20, ma60]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: candidate.volume_ratio_to_5d_avg
+          right: 0.30
+        - op: any
+          conditions:
+            - op: all
+              conditions:
+                - op: ge
+                  left:
+                    var: candidate.close_to_ma20_ratio
+                  right: 0.955
+                - op: le
+                  left:
+                    var: candidate.close_to_ma20_ratio
+                  right: 1.18
+            - op: all
+              conditions:
+                - op: ge
+                  left:
+                    var: candidate.close_to_ma60_ratio
+                  right: 0.970
+                - op: le
+                  left:
+                    var: candidate.close_to_ma60_ratio
+                  right: 1.20
+        - op: any
+          conditions:
+            - op: ge
+              left:
+                var: candidate.ma20_trend_slope
+              right: -0.012
+            - op: ge
+              left:
+                var: candidate.ma60_trend_slope
+              right: -0.006
+    then:
+      result: pass
+      reason_code: trend_participation_guard_pass
+      message: 标的满足趋势参与资格过滤条件
+      payload:
+        state: eligible
+        filter_role: trend_participation_guard
