@@ -137,6 +137,8 @@ class DatabaseRepository:
                         pb_ratio=DatabaseRepository._coerce_dataframe_value(row.get('pb_ratio')),
                         market_cap=DatabaseRepository._coerce_dataframe_value(row.get('market_cap')),
                         circulating_market_cap=DatabaseRepository._coerce_dataframe_value(row.get('circulating_market_cap')),
+                        pre_adjust_factor=DatabaseRepository._coerce_dataframe_value(row.get('pre_adjust_factor')),
+                        post_adjust_factor=DatabaseRepository._coerce_dataframe_value(row.get('post_adjust_factor')),
                         data_source=DatabaseRepository._coerce_dataframe_value(row.get('data_source'))
                     )
                     records.append(record)
@@ -190,6 +192,8 @@ class DatabaseRepository:
                     'pb_ratio': bar.pb_ratio,
                     'market_cap': bar.market_cap,
                     'circulating_market_cap': bar.circulating_market_cap,
+                    'pre_adjust_factor': bar.pre_adjust_factor,
+                    'post_adjust_factor': bar.post_adjust_factor,
                     'data_source': bar.data_source,
                 })
             

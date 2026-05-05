@@ -57,6 +57,8 @@ class DailyBar(Base):
     pb_ratio = Column(Float, comment='市净率')
     market_cap = Column(Float, comment='总市值')
     circulating_market_cap = Column(Float, comment='流通市值')
+    pre_adjust_factor = Column(Float, comment='前复权因子')
+    post_adjust_factor = Column(Float, comment='后复权因子')
     data_source = Column(String(50), default='UNKNOWN', comment='数据源')
     created_at = Column(DateTime, default=lambda: datetime.now(), comment='创建时间')
     updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now(), comment='更新时间')
