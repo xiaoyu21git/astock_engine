@@ -195,11 +195,20 @@ class Database:
             bar.volume = float(bar_dict.get('volume', 0))
             bar.turnover = float(bar_dict.get('turnover', 0))
             bar.change_pct = float(bar_dict.get('change_pct', 0))
+            bar.change_amt = float(bar_dict.get('change_amt', 0))
             bar.amplitude = float(bar_dict.get('amplitude', 0))
             bar.turnover_rate = float(bar_dict.get('turnover_rate', 0))
             bar.pe_ratio = float(bar_dict.get('pe_ratio', 0))
             bar.pb_ratio = float(bar_dict.get('pb_ratio', 0))
             bar.market_cap = float(bar_dict.get('market_cap', 0))
+            bar.circulating_market_cap = float(bar_dict.get('circulating_market_cap', 0))
+            bar.pre_adjust_factor = float(bar_dict.get('pre_adjust_factor', 0))
+            bar.post_adjust_factor = float(bar_dict.get('post_adjust_factor', 0))
+            bar.data_source = str(bar_dict.get('data_source', ''))
+            if 'created_at' in bar_dict and bar_dict.get('created_at'):
+                bar.created_at = self._parse_datetime(bar_dict['created_at'])
+            if 'updated_at' in bar_dict and bar_dict.get('updated_at'):
+                bar.updated_at = self._parse_datetime(bar_dict['updated_at'])
             native_bars.append(bar)
         
         return self._repo.save_daily_bars(native_bars)
@@ -213,6 +222,7 @@ class Database:
         
         return [
             {
+                'id': bar.id,
                 'symbol': bar.symbol,
                 'trade_date': datetime.fromtimestamp(bar.trade_date).strftime('%Y-%m-%d'),
                 'open': bar.open,
@@ -223,11 +233,18 @@ class Database:
                 'volume': bar.volume,
                 'turnover': bar.turnover,
                 'change_pct': bar.change_pct,
+                'change_amt': bar.change_amt,
                 'amplitude': bar.amplitude,
                 'turnover_rate': bar.turnover_rate,
                 'pe_ratio': bar.pe_ratio,
                 'pb_ratio': bar.pb_ratio,
-                'market_cap': bar.market_cap
+                'market_cap': bar.market_cap,
+                'circulating_market_cap': bar.circulating_market_cap,
+                'pre_adjust_factor': bar.pre_adjust_factor,
+                'post_adjust_factor': bar.post_adjust_factor,
+                'data_source': bar.data_source,
+                'created_at': self._format_timestamp(bar.created_at),
+                'updated_at': self._format_timestamp(bar.updated_at)
             }
             for bar in bars
         ]
@@ -240,13 +257,29 @@ class Database:
         
         bar = result
         return {
+            'id': bar.id,
             'symbol': bar.symbol,
             'trade_date': datetime.fromtimestamp(bar.trade_date).strftime('%Y-%m-%d'),
             'open': bar.open,
             'high': bar.high,
             'low': bar.low,
             'close': bar.close,
-            'volume': bar.volume
+            'pre_close': bar.pre_close,
+            'volume': bar.volume,
+            'turnover': bar.turnover,
+            'change_pct': bar.change_pct,
+            'change_amt': bar.change_amt,
+            'amplitude': bar.amplitude,
+            'turnover_rate': bar.turnover_rate,
+            'pe_ratio': bar.pe_ratio,
+            'pb_ratio': bar.pb_ratio,
+            'market_cap': bar.market_cap,
+            'circulating_market_cap': bar.circulating_market_cap,
+            'pre_adjust_factor': bar.pre_adjust_factor,
+            'post_adjust_factor': bar.post_adjust_factor,
+            'data_source': bar.data_source,
+            'created_at': self._format_timestamp(bar.created_at),
+            'updated_at': self._format_timestamp(bar.updated_at)
         }
     
     # ========== Transaction 操作 ==========
@@ -288,6 +321,32 @@ class Database:
             return date_str
         dt = datetime.strptime(date_str, '%Y-%m-%d')
         return int(dt.timestamp())
+
+    @staticmethod
+    def _parse_datetime(value) -> int:
+        """解析日期/时间字符串为时间戳"""
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, datetime):
+            return int(value.timestamp())
+        text = str(value).strip()
+        if not text:
+            return 0
+        for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d'):
+            try:
+                return int(datetime.strptime(text, fmt).timestamp())
+            except ValueError:
+                continue
+        return int(datetime.fromisoformat(text).timestamp())
+
+    @staticmethod
+    def _format_timestamp(value: int) -> str:
+        """格式化时间戳"""
+        if not value:
+            return ''
+        return datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
     
     def __enter__(self):
         """上下文管理器入口"""

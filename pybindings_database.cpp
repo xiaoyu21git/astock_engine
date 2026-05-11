@@ -67,12 +67,18 @@ PYBIND11_MODULE(database_native, m) {
         .def_readwrite("volume", &DailyBar::volume)
         .def_readwrite("turnover", &DailyBar::turnover)
         .def_readwrite("change_pct", &DailyBar::change_pct)
+        .def_readwrite("change_amt", &DailyBar::change_amt)
         .def_readwrite("amplitude", &DailyBar::amplitude)
         .def_readwrite("turnover_rate", &DailyBar::turnover_rate)
         .def_readwrite("pe_ratio", &DailyBar::pe_ratio)
         .def_readwrite("pb_ratio", &DailyBar::pb_ratio)
         .def_readwrite("market_cap", &DailyBar::market_cap)
-        .def_readwrite("created_at", &DailyBar::created_at);
+        .def_readwrite("circulating_market_cap", &DailyBar::circulating_market_cap)
+        .def_readwrite("pre_adjust_factor", &DailyBar::pre_adjust_factor)
+        .def_readwrite("post_adjust_factor", &DailyBar::post_adjust_factor)
+        .def_readwrite("data_source", &DailyBar::data_source)
+        .def_readwrite("created_at", &DailyBar::created_at)
+        .def_readwrite("updated_at", &DailyBar::updated_at);
     
     py::class_<MinuteBar>(m, "MinuteBar")
         .def(py::init<>())

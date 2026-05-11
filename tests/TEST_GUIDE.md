@@ -380,11 +380,11 @@ pytest astock_engine/tests/ --cov=astock_engine --cov-report=html
 
 | 模块 | 目标 | 当前 | 状态 |
 |------|------|------|------|
-| EventBus | 90% | TBD | 🔄 |
-| EventBusImpl | 85% | TBD | 🔄 |
-| EventFormat | 80% | TBD | 🔄 |
-| EventValue | 85% | TBD | 🔄 |
-| **整体** | **85%** | **TBD** | **🔄** |
+| EventBus | 90% | 见最新覆盖率报告 | 参考 |
+| EventBusImpl | 85% | 见最新覆盖率报告 | 参考 |
+| EventFormat | 80% | 见最新覆盖率报告 | 参考 |
+| EventValue | 85% | 见最新覆盖率报告 | 参考 |
+| **整体** | **85%** | **87%** | **✅** |
 
 ---
 

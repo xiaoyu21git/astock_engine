@@ -362,16 +362,36 @@ class DataFetchHandler:
                 try:
                     # 保存日线数据
                     if data_point.get('data_type') == 'daily':
-                        # 转换数据格式为Database期望的格式
+                        trade_date = data_point.get('trade_date') or data_point.get('date', '')
+                        turnover = data_point.get('turnover')
+                        if turnover is None:
+                            turnover = data_point.get('amount')
+                        if turnover is None:
+                            turnover = data_point.get('volume', 0) * data_point.get('close', 0)
+
                         daily_bar = {
                             'symbol': data_point.get('symbol', ''),
-                            'trade_date': data_point.get('date', ''),
+                            'trade_date': trade_date,
                             'open': data_point.get('open', 0),
                             'high': data_point.get('high', 0),
                             'low': data_point.get('low', 0),
                             'close': data_point.get('close', 0),
+                            'pre_close': data_point.get('pre_close', data_point.get('prev_close', 0)),
                             'volume': data_point.get('volume', 0),
-                            'turnover': data_point.get('volume', 0) * data_point.get('close', 0)
+                            'turnover': turnover,
+                            'change_pct': data_point.get('change_pct', data_point.get('pct_chg', 0)),
+                            'change_amt': data_point.get('change_amt', data_point.get('change', 0)),
+                            'amplitude': data_point.get('amplitude', 0),
+                            'turnover_rate': data_point.get('turnover_rate', 0),
+                            'pe_ratio': data_point.get('pe_ratio', data_point.get('pe', 0)),
+                            'pb_ratio': data_point.get('pb_ratio', data_point.get('pb', 0)),
+                            'market_cap': data_point.get('market_cap', data_point.get('total_market_cap', 0)),
+                            'circulating_market_cap': data_point.get('circulating_market_cap', data_point.get('float_market_cap', 0)),
+                            'pre_adjust_factor': data_point.get('pre_adjust_factor', 0),
+                            'post_adjust_factor': data_point.get('post_adjust_factor', data_point.get('adj_factor', 0)),
+                            'data_source': data_point.get('data_source', data_point.get('source', '')),
+                            'created_at': data_point.get('created_at', ''),
+                            'updated_at': data_point.get('updated_at', '')
                         }
                         # 批量保存更高效，但这里先单个保存
                         self.database.save_daily_bars([daily_bar])

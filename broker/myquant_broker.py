@@ -104,6 +104,8 @@ class MyQuantBroker(Broker):
                 return f"SZSE.{code}"
             if exch in {"SH", "SHSE"}:
                 return f"SHSE.{code}"
+            if exch in {"BJ", "BSE"}:
+                return f"BSE.{code}"
 
         # 兜底：保持原样，交给下游处理（便于发现其他品种的编码问题）
         return s
@@ -126,6 +128,8 @@ class MyQuantBroker(Broker):
             return f"{s[5:]}.SZ"
         if s.startswith("SHSE."):
             return f"{s[5:]}.SH"
+        if s.startswith("BSE."):
+            return f"{s[4:]}.BJ"
 
         return s
 
