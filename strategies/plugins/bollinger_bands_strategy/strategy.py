@@ -44,7 +44,7 @@ class BollingerBandsStrategy(BaseStrategy):
         self.std_dev = self.params.get('std_dev', 2.0)
         self.lower_trigger = self.params.get('lower_band_trigger', 0.95)
         self.upper_trigger = self.params.get('upper_band_trigger', 1.05)
-        self.position_size = self.params.get('position_size', 0.3)
+        self.position_ratio = self.params.get('positionSize', 0.3)
         
         # 缓存数据
         self.price_history: Dict[str, List[float]] = {}

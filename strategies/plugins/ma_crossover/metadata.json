@@ -20,7 +20,7 @@
       "max": 200,
       "description": "长期均线窗口"
     },
-    "position_size": {
+    "positionSize": {
       "type": "float",
       "default": 0.2,
       "min": 0.05,

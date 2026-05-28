@@ -124,9 +124,6 @@ PYBIND11_MODULE(database_native, m) {
         .def("get_database_version", [](QtMySQLDatabase& self) {
             return self.getDatabaseVersion().toStdString();
         })
-        .def("table_exists", [](QtMySQLDatabase& self, const std::string& tableName) {
-            return self.tableExists(QString::fromStdString(tableName));
-        })
         .def("commit_transaction", &QtMySQLDatabase::commitTransaction)
         .def("rollback_transaction", &QtMySQLDatabase::rollbackTransaction);
     

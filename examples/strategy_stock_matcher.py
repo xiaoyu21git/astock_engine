@@ -159,13 +159,13 @@ class StrategyMatcher:
     }
     
     @classmethod
-    def match(cls, features: dict, top_n: int = 3) -> list:
+    def match(cls, features: dict, top_count: int = 3) -> list:
         """
         为股票特征匹配最合适的策略
         
         Args:
             features: 股票特征字典
-            top_n: 返回前N个最匹配的策略
+            top_count: 返回前N个最匹配的策略
             
         Returns:
             [(strategy_name, score, reason), ...]
@@ -212,7 +212,7 @@ class StrategyMatcher:
         
         # 按分数排序
         results.sort(key=lambda x: x['score'], reverse=True)
-        return results[:top_n]
+        return results[:top_count]
 
 
 def main():
@@ -259,7 +259,7 @@ def main():
             print(f"   均值回归性:   {features['mean_reversion']:.2%}")
             
             # 匹配策略
-            matches = StrategyMatcher.match(features, top_n=3)
+            matches = StrategyMatcher.match(features, top_count=3)
             
             print("\n🎯 推荐策略（按匹配度排序）:")
             for i, match in enumerate(matches, 1):

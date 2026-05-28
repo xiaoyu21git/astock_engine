@@ -26,7 +26,7 @@ class MACrossoverStrategy(BaseStrategy):
         
         self.short_window = self.params.get('short_window', 10)
         self.long_window = self.params.get('long_window', 30)
-        self.position_size = self.params.get('position_size', 0.2)
+        self.position_ratio = self.params.get('positionSize', 0.2)
         
         self.price_history: Dict[str, List[float]] = {}
         self.ma_short: Dict[str, float] = {}

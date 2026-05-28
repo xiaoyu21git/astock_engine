@@ -27,7 +27,7 @@
       "max": 80,
       "description": "超买阈值（卖出信号）"
     },
-    "position_size": {
+    "positionSize": {
       "type": "float",
       "default": 0.2,
       "min": 0.1,

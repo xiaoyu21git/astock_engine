@@ -27,7 +27,7 @@ class MultiFactorStrategy(BaseStrategy):
                 - sentiment_weight: 舆情因子权重 (默认0.3)
                 - buy_threshold: 买入阈值 (默认0.6)
                 - sell_threshold: 卖出阈值 (默认0.4)
-                - top_n: 选择前N只股票 (默认10)
+                - topN: 选择前N只股票 (默认10)
         """
         super().__init__("MultiFactorStrategy", params)
         
@@ -39,7 +39,7 @@ class MultiFactorStrategy(BaseStrategy):
         # 交易阈值
         self.buy_threshold = self.params.get('buy_threshold', 0.6)
         self.sell_threshold = self.params.get('sell_threshold', 0.4)
-        self.top_n = self.params.get('top_n', 10)
+        self.selection_count = self.params.get('topN', 10)
         
     def generate_signals(self, data: pd.DataFrame, 
                         context: Optional[Dict] = None) -> List[Signal]:
@@ -76,7 +76,7 @@ class MultiFactorStrategy(BaseStrategy):
         
         # 生成买入信号
         buy_candidates = combined_scores[combined_scores['score'] >= self.buy_threshold]
-        buy_candidates = buy_candidates.nlargest(self.top_n, 'score')
+        buy_candidates = buy_candidates.nlargest(self.selection_count, 'score')
         
         current_time = datetime.now()
         

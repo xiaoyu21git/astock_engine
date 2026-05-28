@@ -25,7 +25,7 @@ class MovingAverageCrossoverStrategy(BaseStrategy):
     参数：
     - short_window: 短期均线窗口（默认10）
     - long_window: 长期均线窗口（默认30）
-    - position_size: 单次交易仓位（默认0.2，即20%）
+    - positionSize: 单次交易仓位（默认0.2，即20%）
     """
     
     def __init__(self, params: Dict = None):
@@ -34,7 +34,7 @@ class MovingAverageCrossoverStrategy(BaseStrategy):
         # 策略参数
         self.short_window = self.params.get('short_window', 10)
         self.long_window = self.params.get('long_window', 30)
-        self.position_size = self.params.get('position_size', 0.2)
+        self.position_ratio = self.params.get('positionSize', 0.2)
         
         # 数据缓存
         self.price_history: Dict[str, List[float]] = {}

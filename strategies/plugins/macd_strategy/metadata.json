@@ -32,7 +32,7 @@
       "default": true,
       "description": "是否使用柱状图辅助判断"
     },
-    "position_size": {
+    "positionSize": {
       "type": "float",
       "default": 0.3,
       "min": 0.1,

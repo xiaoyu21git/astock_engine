@@ -34,7 +34,7 @@ class RSIStrategy(BaseStrategy):
         self.rsi_period = self.params.get('rsi_period', 14)
         self.oversold = self.params.get('oversold', 30)
         self.overbought = self.params.get('overbought', 70)
-        self.position_size = self.params.get('position_size', 0.2)
+        self.position_ratio = self.params.get('positionSize', 0.2)
         
         # 缓存价格历史
         self.price_history: Dict[str, List[float]] = {}

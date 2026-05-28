@@ -47,7 +47,7 @@ def test_multi_factor_strategy():
         'volume_weight': 0.3,
         'sentiment_weight': 0.3,
         'buy_threshold': 0.6,
-        'top_n': 5
+        'topN': 5
     })
     
     # 初始化数据提供者

@@ -155,7 +155,7 @@ def main():
         'initial_capital': 1000000,  # 100万初始资金
         'short_window': 5,  # 短期均线5日
         'long_window': 20,  # 长期均线20日
-        'position_size': 0.3,  # 每次交易30%仓位
+        'positionSize': 0.3,  # 每次交易30%仓位
         'max_positions': 3,  # 最多持有3只股票
         'commission_rate': 0.0003  # 万3手续费
     }

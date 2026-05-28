@@ -39,7 +39,7 @@ class MACDStrategy(BaseStrategy):
         self.slow_period = self.params.get('slow_period', 26)
         self.signal_period = self.params.get('signal_period', 9)
         self.use_histogram = self.params.get('use_histogram', True)
-        self.position_size = self.params.get('position_size', 0.3)
+        self.position_ratio = self.params.get('positionSize', 0.3)
         
         # 缓存价格历史
         self.price_history: Dict[str, List[float]] = {}
