@@ -90,9 +90,10 @@ endif()
 find_package(Qt6 COMPONENTS Core Sql QUIET)
 
 # 仅当同时找到 MySQL 开发库且存在 infrastructure 目标时才构建
-if(MYSQL_LIB AND MYSQL_INCLUDE_DIR AND TARGET infrastructure)
-    add_library(database_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings_database.cpp")
-endif()
+# database_native removed — pybindings_database.cpp deleted
+# if(MYSQL_LIB AND MYSQL_INCLUDE_DIR AND TARGET infrastructure)
+#     add_library(database_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings_database.cpp")
+# endif()
 
 # ==================== 模块属性 ====================
 set_target_properties(astock_engine_native PROPERTIES
