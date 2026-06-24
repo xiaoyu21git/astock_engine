@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
-# 强制 C++17 并为 MSVC 添加 /Zc:__cplusplus
+# 强制 C++17（/Zc:__cplusplus 已在根 CMakeLists.txt 全局设置）
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
 # ==================== 开关 ====================
 if(NOT BUILD_PYTHON_EXTENSIONS)
