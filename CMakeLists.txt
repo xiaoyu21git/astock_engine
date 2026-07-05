@@ -52,47 +52,8 @@ add_library(astock_engine_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings.
 # ==================== EventBus Python模块 ====================
 add_library(eventbus_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings_eventbus_simple.cpp")
 
-# 查找MySQL库（与 src/infrastructure/CMake 中保持一致，兼容 D: / C: 安装路径）
-find_library(MYSQL_LIB
-    NAMES libmysql mysqlclient
-    PATHS
-        "D:/Program Files/MySQL/lib"
-        "D:/Program Files/MySQL/MySQL Server 8.0/lib"
-        "C:/Program Files/MySQL/MySQL Server 8.0/lib"
-        "C:/Program Files/MySQL/MySQL Connector C++ 8.0/lib64"
-        "/usr/lib/x86_64-linux-gnu"
-        "/usr/local/lib"
-)
-
-find_path(MYSQL_INCLUDE_DIR
-    NAMES mysql.h mysql/mysql.h
-    PATHS
-        "D:/Program Files/MySQL/include"
-        "D:/Program Files/MySQL/MySQL Server 8.0/include"
-        "C:/Program Files/MySQL/MySQL Server 8.0/include"
-        "C:/Program Files/MySQL/MySQL Connector C++ 8.0/include"
-        "/usr/include/mysql"
-        "/usr/local/include/mysql"
-)
-
-if(NOT MYSQL_LIB OR NOT MYSQL_INCLUDE_DIR)
-    message(WARNING "MySQL not found. Database module will not be built.")
-    message(STATUS "  MYSQL_LIB: ${MYSQL_LIB}")
-    message(STATUS "  MYSQL_INCLUDE_DIR: ${MYSQL_INCLUDE_DIR}")
-else()
-    message(STATUS "Found MySQL: ${MYSQL_LIB}")
-    message(STATUS "MySQL include: ${MYSQL_INCLUDE_DIR}")
-endif()
-
 # ==================== Database Python模块 ====================
-# 查找Qt6（database_native 依赖的 infrastructure 使用了 Qt）
-find_package(Qt6 COMPONENTS Core Sql QUIET)
-
-# 仅当同时找到 MySQL 开发库且存在 infrastructure 目标时才构建
 # database_native removed — pybindings_database.cpp deleted
-# if(MYSQL_LIB AND MYSQL_INCLUDE_DIR AND TARGET infrastructure)
-#     add_library(database_native MODULE "${CMAKE_CURRENT_SOURCE_DIR}/pybindings_database.cpp")
-# endif()
 
 # ==================== 模块属性 ====================
 set_target_properties(astock_engine_native PROPERTIES
@@ -129,15 +90,6 @@ target_include_directories(eventbus_native PRIVATE
     ${CMAKE_SOURCE_DIR}/src/engine/include
 )
 
-if(TARGET database_native)
-    target_include_directories(database_native PRIVATE
-        ${Python_INCLUDE_DIRS}
-        ${PYBIND11_INCLUDE_PATH}
-        ${CMAKE_SOURCE_DIR}/src/infrastructure/include
-        ${MYSQL_INCLUDE_DIR}
-    )
-endif()
-
 # ==================== 链接库 ====================
 target_link_libraries(astock_engine_native PRIVATE
     astock_core
@@ -149,17 +101,7 @@ target_link_libraries(eventbus_native PRIVATE
     ${Python_LIBRARIES}
 )
 
-if(TARGET database_native)
-    target_link_libraries(database_native PRIVATE
-        infrastructure
-        ${Python_LIBRARIES}
-        ${MYSQL_LIB}
-    )
-    # 链接Qt库（infrastructure头文件依赖Qt）
-    if(TARGET Qt6::Core AND TARGET Qt6::Sql)
-        target_link_libraries(database_native PRIVATE Qt6::Core Qt6::Sql)
-    endif()
-endif()
+# database_native target removed — see above
 
 # ==================== 编译定义 ====================
 if(WIN32)

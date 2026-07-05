@@ -14,10 +14,10 @@ from .models import Base
 # 数据库配置
 DATABASE_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
-    'port': int(os.getenv('DB_PORT', '3306')),
+    'port': int(os.getenv('DB_PORT', '5432')),
     'database': os.getenv('DB_NAME', 'astock_quant'),
-    'username': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', 'root'),
+    'username': os.getenv('DB_USER', 'astock'),
+    'password': os.getenv('DB_PASSWORD', 'astock123'),
 }
 
 # 连接池配置
@@ -49,9 +49,9 @@ def init_database(echo: bool = False) -> None:
     
     # 构建连接URL
     url = (
-        f"mysql+pymysql://{DATABASE_CONFIG['username']}:{DATABASE_CONFIG['password']}"
+        f"postgresql://{DATABASE_CONFIG['username']}:{DATABASE_CONFIG['password']}"
         f"@{DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}"
-        f"/{DATABASE_CONFIG['database']}?charset=utf8mb4"
+        f"/{DATABASE_CONFIG['database']}"
     )
     
     # 创建引擎
