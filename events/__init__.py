@@ -19,13 +19,25 @@ from .financial_lexicon import (
     FinancialLexicon,
     SentimentAnalyzer,
 )
+from .nlp_pipeline import (
+    EntityRecognizer,
+    EventClassifier,
+    TagExtractor,
+    NLPPipeline,
+)
 from .publisher import EventPublisher
+from .config import EventModuleConfig
 
 __all__ = [
+    "EntityRecognizer",
+    "EventClassifier",
+    "EventModuleConfig",
     "FinancialEvent",
     "FinancialEventType",
     "FinancialLexicon",
     "InfoSource",
+    "NLPPipeline",
     "EventPublisher",
     "SentimentAnalyzer",
+    "TagExtractor",
 ]
