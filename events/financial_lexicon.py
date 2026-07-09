@@ -18,6 +18,7 @@
 import json
 import logging
 import os
+import re
 from typing import Dict, List, Optional, Tuple
 
 
@@ -135,6 +136,19 @@ class SentimentAnalyzer:
         self._lexicon = lexicon
         self._tokenizer = None
 
+    @staticmethod
+    def _fallback_tokenizer(text: str) -> list:
+        """分词降级: jieba → 简单字词切分 → 空格分割"""
+        try:
+            import jieba
+            return list(jieba.lcut(text))
+        except ImportError:
+            pass
+        # 最终降级: 按中文字符/空格简单切分
+        import re
+        tokens = re.findall(r'[一-鿿]+|[a-zA-Z0-9]+|[^\s]', text)
+        return tokens if tokens else text.split()
+
     def _ensure_tokenizer(self):
         """延迟加载 HanLP 分词器 (首次调用 ~5s)"""
         if self._tokenizer is not None:
@@ -146,14 +160,11 @@ class SentimentAnalyzer:
             )
             logging.info("[SentimentAnalyzer] HanLP 分词器加载完成")
         except ImportError:
-            logging.warning(
-                "[SentimentAnalyzer] HanLP 不可用, 使用 jieba 降级")
-            import jieba
-            self._tokenizer = jieba.lcut
+            logging.debug("[SentimentAnalyzer] HanLP 不可用, 使用 jieba 降级")
+            self._tokenizer = self._fallback_tokenizer
         except Exception as e:
-            logging.error(f"[SentimentAnalyzer] HanLP 加载失败: {e}")
-            import jieba
-            self._tokenizer = jieba.lcut
+            logging.error("[SentimentAnalyzer] HanLP 加载失败: %s", e)
+            self._tokenizer = self._fallback_tokenizer
 
     def analyze(self, text: str) -> Tuple[float, dict]:
         """分析文本的金融情感

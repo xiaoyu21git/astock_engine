@@ -19,8 +19,13 @@ class EventModuleConfig:
 
     # ── 信息源 ──
     enabled_sources: List[str] = field(default_factory=lambda: [
-        "eastmoney",   # 东方财富 7x24 快讯
-        "cninfo",      # 巨潮资讯公告
+        "eastmoney",    # 东方财富全球快讯
+        "cninfo",       # 巨潮资讯公告
+        "cls",          # 财联社电报
+        "xueqiu",       # 雪球热帖
+        "sina",         # 新浪财经
+        "tonghuashun",  # 同花顺热榜/快讯
+        # "gm_sdk" 由 C++ GmSessionEngine 直发 news.quote_alert，不走 Python poll
     ])
 
     # ── 轮询间隔 (秒) ──

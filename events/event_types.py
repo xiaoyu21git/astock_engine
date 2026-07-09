@@ -25,6 +25,7 @@ class InfoSource(str, Enum):
     XUEQIU      = "xueqiu"        # 雪球
     CLS         = "cls"           # 财联社
     SINA        = "sina"          # 新浪财经
+    TONGHUASHUN = "tonghuashun"   # 同花顺
     GM_SDK      = "gm_sdk"        # 掘金SDK (行情异动)
 
 

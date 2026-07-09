@@ -8,6 +8,15 @@
   - 指数退避重试: 429/网络异常自动重试
   - SHA256 内容指纹去重: 内存 10 万条自动清理
   - 并发拉取: asyncio.gather 多源并行
+
+支持信息源:
+  - eastmoney   : 东方财富全球快讯
+  - cninfo      : 巨潮资讯公告
+  - cls         : 财联社电报
+  - xueqiu      : 雪球热帖
+  - sina        : 新浪财经
+  - tonghuashun : 同花顺热榜/快讯
+  - gm_sdk      : 掘金SDK 行情异动 (C++ 侧直发, 不走 Python)
 """
 
 import asyncio
@@ -170,22 +179,22 @@ class BaseAdapter(ABC):
         """拉取一批新闻 → NLP → FinancialEvent 列表"""
         ...
 
+    @staticmethod
+    def _ak_dataframe_to_records(df) -> List[dict]:
+        """AKShare DataFrame → records, 兼容空值"""
+        if df is None or (hasattr(df, 'empty') and df.empty):
+            return []
+        return df.tail(BaseAdapter.DEFAULT_BATCH_SIZE).to_dict("records")
+
 
 # ═══════════════════════════════════════════════════════════════
-# AKShareNewsAdapter — 东方财富 + 巨潮资讯
+# EastmoneyNewsAdapter — 东方财富全球快讯
 # ═══════════════════════════════════════════════════════════════
 
-class AKShareNewsAdapter(BaseAdapter):
-    """AKShare 新闻适配器
+class EastmoneyNewsAdapter(BaseAdapter):
+    """东方财富新闻适配器 — 全球财经快讯"""
 
-    信息源:
-      - 东方财富 7x24 快讯 (stock_zh_a_alerts_cls)
-      - 巨潮资讯公告 (stock_notice_report)
-
-    限流: 保守 30次/分钟 (akshare 不公开 rate limit)
-    """
-
-    DEFAULT_RATE_LIMIT = (30, 60.0)
+    DEFAULT_RATE_LIMIT = (20, 60.0)
 
     def __init__(self, pipeline: NLPPipeline):
         super().__init__(InfoSource.EASTMONEY, pipeline)
@@ -193,11 +202,112 @@ class AKShareNewsAdapter(BaseAdapter):
     async def poll(self) -> List[FinancialEvent]:
         await self._ensure_session()
         events: List[FinancialEvent] = []
+        raw = await self._fetch_em_news()
+        if raw:
+            for item in raw:
+                event = self._process_item(
+                    str(item.get("title", item.get("content", ""))),
+                    str(item.get("content", item.get("summary", item.get("title", "")))),
+                )
+                if event:
+                    events.append(event)
+        if events:
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        return events
 
-        # 并发拉取多源
+    async def _fetch_em_news(self) -> Optional[List[dict]]:
+        try:
+            import akshare as ak
+            df = ak.stock_info_global_em()
+            return self._ak_dataframe_to_records(df)
+        except ImportError:
+            logging.warning("[%s] akshare 不可用, 尝试 HTTP fallback", self._source.value)
+            return await self._fetch_em_http()
+        except Exception as e:
+            logging.error("[%s] 东方财富异常: %s", self._source.value, e)
+            return await self._fetch_em_http()
+
+    async def _fetch_em_http(self) -> Optional[List[dict]]:
+        """东方财富 HTTP fallback — 7x24 快讯 API"""
+        try:
+            url = (
+                "https://push2ex.eastmoney.com/getQuickNews?"
+                "pagesize=200&pageindex=1&type=1"
+            )
+            text = await self._fetch_with_retry(url)
+            if not text:
+                return None
+            import json
+            data = json.loads(text)
+            items = data.get("Data", {}).get("List", [])
+            return [{"title": i.get("Title", ""), "content": i.get("Content", "")}
+                    for i in items]
+        except Exception as e:
+            logging.error("[%s] HTTP fallback 失败: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# CninfoAdapter — 巨潮资讯公告
+# ═══════════════════════════════════════════════════════════════
+
+class CninfoAdapter(BaseAdapter):
+    """巨潮资讯公告适配器"""
+
+    DEFAULT_RATE_LIMIT = (20, 60.0)
+
+    def __init__(self, pipeline: NLPPipeline):
+        super().__init__(InfoSource.CNINFO, pipeline)
+
+    async def poll(self) -> List[FinancialEvent]:
+        await self._ensure_session()
+        events: List[FinancialEvent] = []
+        raw = await self._fetch_cninfo()
+        if raw:
+            for item in raw:
+                title = str(item.get("title", item.get("name", "")))
+                content = str(item.get("content", item.get("summary", "")))
+                if not title:
+                    continue
+                event = self._process_item(title, content)
+                if event:
+                    events.append(event)
+        if events:
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        return events
+
+    async def _fetch_cninfo(self) -> Optional[List[dict]]:
+        try:
+            import akshare as ak
+            df = ak.stock_notice_report()
+            return self._ak_dataframe_to_records(df)
+        except ImportError:
+            logging.warning("[%s] akshare 不可用", self._source.value)
+            return None
+        except Exception as e:
+            logging.error("[%s] 巨潮公告异常: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# ClsNewsAdapter — 财联社电报
+# ═══════════════════════════════════════════════════════════════
+
+class ClsNewsAdapter(BaseAdapter):
+    """财联社电报适配器 — 7x24 实时电报"""
+
+    DEFAULT_RATE_LIMIT = (30, 60.0)
+
+    def __init__(self, pipeline: NLPPipeline):
+        super().__init__(InfoSource.CLS, pipeline)
+
+    async def poll(self) -> List[FinancialEvent]:
+        await self._ensure_session()
+        events: List[FinancialEvent] = []
+
         results = await asyncio.gather(
-            self._fetch_eastmoney_news(),
-            self._fetch_cninfo_announcements(),
+            self._fetch_cls_telegraph(),
+            self._fetch_cls_hot(),
             return_exceptions=True,
         )
 
@@ -208,48 +318,346 @@ class AKShareNewsAdapter(BaseAdapter):
             if not result:
                 continue
             for item in result:
-                event = self._process_item(
-                    str(item.get("title", "")),
-                    str(item.get("content", "")),
-                )
+                title = str(item.get("title", ""))
+                content = str(item.get("content", item.get("summary", "")))
+                if not title:
+                    continue
+                event = self._process_item(title, content)
                 if event:
                     events.append(event)
 
         if events:
-            logging.info(
-                "[%s] poll 完成: %d 条新闻 → %d 条事件",
-                self._source.value,
-                sum(len(r) if r else 0 for r in results if not isinstance(r, Exception)),
-                len(events),
-            )
-
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
         return events
 
-    async def _fetch_eastmoney_news(self) -> Optional[List[dict]]:
-        """东方财富 7x24 快讯"""
+    async def _fetch_cls_telegraph(self) -> Optional[List[dict]]:
+        """财联社电报"""
         try:
             import akshare as ak
-            df = ak.stock_zh_a_alerts_cls()
-            if df is None or df.empty:
-                return []
-            return df.tail(self.DEFAULT_BATCH_SIZE).to_dict("records")
+            df = ak.stock_telegraph_cls()
+            return self._ak_dataframe_to_records(df)
         except ImportError:
-            logging.warning("[%s] akshare 不可用", self._source.value)
             return None
         except Exception as e:
-            logging.error("[%s] 东方财富快讯异常: %s", self._source.value, e)
+            logging.warning("[%s] 财联社电报异常: %s", self._source.value, e)
             return None
 
-    async def _fetch_cninfo_announcements(self) -> Optional[List[dict]]:
-        """巨潮资讯公告"""
+    async def _fetch_cls_hot(self) -> Optional[List[dict]]:
+        """财联社热门文章"""
+        try:
+            url = (
+                "https://www.cls.cn/api/sw?app=CailianpressWeb"
+                "&os=web&sv=8.5.5&sign="
+            )
+            text = await self._fetch_with_retry(url)
+            if not text:
+                return None
+            import json
+            data = json.loads(text)
+            items = data.get("data", {}).get("roll_data", [])
+            return [{"title": i.get("title", ""),
+                     "content": i.get("brief", i.get("content", ""))}
+                    for i in items]
+        except Exception as e:
+            logging.warning("[%s] 财联社热门异常: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# XueqiuAdapter — 雪球热帖
+# ═══════════════════════════════════════════════════════════════
+
+class XueqiuAdapter(BaseAdapter):
+    """雪球热帖适配器"""
+
+    DEFAULT_RATE_LIMIT = (15, 60.0)
+
+    def __init__(self, pipeline: NLPPipeline):
+        super().__init__(InfoSource.XUEQIU, pipeline)
+
+    async def poll(self) -> List[FinancialEvent]:
+        await self._ensure_session()
+        events: List[FinancialEvent] = []
+
+        results = await asyncio.gather(
+            self._fetch_xueqiu_hot(),
+            self._fetch_xueqiu_status(),
+            return_exceptions=True,
+        )
+
+        for result in results:
+            if isinstance(result, Exception):
+                logging.error("[%s] 拉取异常: %s", self._source.value, result)
+                continue
+            if not result:
+                continue
+            for item in result:
+                title = str(item.get("title", item.get("text", item.get("description", ""))))
+                content = str(item.get("text", item.get("description", item.get("content", ""))))
+                if not title:
+                    continue
+                event = self._process_item(title, content)
+                if event:
+                    events.append(event)
+
+        if events:
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        return events
+
+    async def _fetch_xueqiu_hot(self) -> Optional[List[dict]]:
+        """雪球热门讨论"""
         try:
             import akshare as ak
-            df = ak.stock_notice_report()
-            if df is None or df.empty:
-                return []
-            return df.tail(self.DEFAULT_BATCH_SIZE).to_dict("records")
+            df = ak.stock_hot_discuss_xq(symbol="最热")
+            return self._ak_dataframe_to_records(df)
         except ImportError:
             return None
         except Exception as e:
-            logging.error("[%s] 巨潮公告异常: %s", self._source.value, e)
+            logging.warning("[%s] 雪球热帖 AKShare 异常: %s", self._source.value, e)
+            return await self._fetch_xueqiu_http()
+
+    async def _fetch_xueqiu_status(self) -> Optional[List[dict]]:
+        """雪球关注动态"""
+        try:
+            import akshare as ak
+            df = ak.stock_hot_follow_xq(symbol="最热")
+            return self._ak_dataframe_to_records(df)
+        except ImportError:
             return None
+        except Exception as e:
+            logging.debug("[%s] 雪球动态异常 (可忽略): %s", self._source.value, e)
+            return None
+
+    async def _fetch_xueqiu_http(self) -> Optional[List[dict]]:
+        """雪球 HTTP fallback — 热帖 API"""
+        try:
+            url = (
+                "https://xueqiu.com/statuses/hot/listV2.json?"
+                "since_id=-1&size=50"
+            )
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36",
+                "Referer": "https://xueqiu.com/",
+            }
+            text = await self._fetch_with_retry(url, headers=headers)
+            if not text:
+                return None
+            import json
+            data = json.loads(text)
+            items = data.get("items", [])
+            return [{"title": i.get("title", i.get("description", "")),
+                     "content": i.get("description", i.get("text", ""))}
+                    for i in items]
+        except Exception as e:
+            logging.error("[%s] HTTP fallback 失败: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# SinaNewsAdapter — 新浪财经
+# ═══════════════════════════════════════════════════════════════
+
+class SinaNewsAdapter(BaseAdapter):
+    """新浪财经适配器"""
+
+    DEFAULT_RATE_LIMIT = (20, 60.0)
+
+    def __init__(self, pipeline: NLPPipeline):
+        super().__init__(InfoSource.SINA, pipeline)
+
+    async def poll(self) -> List[FinancialEvent]:
+        await self._ensure_session()
+        events: List[FinancialEvent] = []
+
+        results = await asyncio.gather(
+            self._fetch_sina_finance(),
+            return_exceptions=True,
+        )
+
+        for result in results:
+            if isinstance(result, Exception):
+                logging.error("[%s] 拉取异常: %s", self._source.value, result)
+                continue
+            if not result:
+                continue
+            for item in result:
+                title = str(item.get("title", ""))
+                content = str(item.get("content", item.get("summary", "")))
+                if not title:
+                    continue
+                event = self._process_item(title, content)
+                if event:
+                    events.append(event)
+
+        if events:
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        return events
+
+    async def _fetch_sina_finance(self) -> Optional[List[dict]]:
+        """新浪财经新闻 — AKShare"""
+        try:
+            import akshare as ak
+            df = ak.stock_info_global_sina()
+            return self._ak_dataframe_to_records(df)
+        except ImportError:
+            return None
+        except Exception as e:
+            logging.warning("[%s] 新浪财经 AKShare 异常: %s", self._source.value, e)
+            return await self._fetch_sina_http()
+
+    async def _fetch_sina_http(self) -> Optional[List[dict]]:
+        """新浪财经 HTTP fallback"""
+        try:
+            url = (
+                "https://feed.mix.sina.com.cn/api/roll/get?"
+                "pageid=153&lid=2509&k=&num=50&page=1"
+            )
+            text = await self._fetch_with_retry(url)
+            if not text:
+                return None
+            import json
+            data = json.loads(text)
+            items = data.get("result", {}).get("data", [])
+            return [{"title": i.get("title", ""),
+                     "content": i.get("intro", i.get("ctime", ""))}
+                    for i in items]
+        except Exception as e:
+            logging.error("[%s] HTTP fallback 失败: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# TonghuashunAdapter — 同花顺
+# ═══════════════════════════════════════════════════════════════
+
+class TonghuashunAdapter(BaseAdapter):
+    """同花顺适配器 — 热榜 + 快讯"""
+
+    DEFAULT_RATE_LIMIT = (20, 60.0)
+
+    def __init__(self, pipeline: NLPPipeline):
+        super().__init__(InfoSource.TONGHUASHUN, pipeline)
+
+    async def poll(self) -> List[FinancialEvent]:
+        await self._ensure_session()
+        events: List[FinancialEvent] = []
+
+        results = await asyncio.gather(
+            self._fetch_ths_hot_rank(),
+            self._fetch_ths_news(),
+            return_exceptions=True,
+        )
+
+        for result in results:
+            if isinstance(result, Exception):
+                logging.error("[%s] 拉取异常: %s", self._source.value, result)
+                continue
+            if not result:
+                continue
+            for item in result:
+                title = str(item.get("title", item.get("name", item.get("概念名称", ""))))
+                content = str(item.get("content", item.get("reason", item.get("描述", ""))))
+                if not title:
+                    continue
+                event = self._process_item(title, content)
+                if event:
+                    events.append(event)
+
+        if events:
+            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        return events
+
+    async def _fetch_ths_hot_rank(self) -> Optional[List[dict]]:
+        """同花顺热门概念/板块排行"""
+        try:
+            import akshare as ak
+            df = ak.stock_hot_rank_ths()
+            return self._ak_dataframe_to_records(df)
+        except ImportError:
+            return None
+        except Exception as e:
+            logging.warning("[%s] 同花顺热榜 AKShare 异常: %s", self._source.value, e)
+            return await self._fetch_ths_http()
+
+    async def _fetch_ths_news(self) -> Optional[List[dict]]:
+        """同花顺行业/概念新闻"""
+        try:
+            import akshare as ak
+            df = ak.stock_board_concept_name_ths()
+            if df is None or (hasattr(df, 'empty') and df.empty):
+                return None
+            records = df.tail(50).to_dict("records")
+            return [{"title": r.get("name", r.get("概念名称", "")),
+                     "content": r.get("reason", r.get("描述", ""))}
+                    for r in records]
+        except ImportError:
+            return None
+        except Exception as e:
+            logging.debug("[%s] 同花顺概念异常: %s", self._source.value, e)
+            return None
+
+    async def _fetch_ths_http(self) -> Optional[List[dict]]:
+        """同花顺 HTTP fallback — 热榜 API"""
+        try:
+            url = (
+                "https://eq.10jqka.com.cn/open/api/users/hot/v1/hot_plate.json?"
+                "appName=ths&client=pc"
+            )
+            text = await self._fetch_with_retry(url)
+            if not text:
+                return None
+            import json
+            data = json.loads(text)
+            items = data.get("data", [])
+            return [{"title": i.get("plate_name", i.get("name", "")),
+                     "content": i.get("reason", i.get("desc", ""))}
+                    for i in items]
+        except Exception as e:
+            logging.error("[%s] HTTP fallback 失败: %s", self._source.value, e)
+            return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# AdapterRegistry — 适配器注册表
+# ═══════════════════════════════════════════════════════════════
+
+_ADAPTER_REGISTRY = {
+    InfoSource.EASTMONEY:   EastmoneyNewsAdapter,
+    InfoSource.CNINFO:      CninfoAdapter,
+    InfoSource.CLS:         ClsNewsAdapter,
+    InfoSource.XUEQIU:      XueqiuAdapter,
+    InfoSource.SINA:        SinaNewsAdapter,
+    InfoSource.TONGHUASHUN: TonghuashunAdapter,
+    # gm_sdk 由 C++ GmSessionEngine 直发 news.quote_alert，不走 Python
+}
+
+
+def create_adapters(
+    pipeline: NLPPipeline,
+    enabled_sources: List[str],
+) -> List[BaseAdapter]:
+    """根据配置创建适配器实例列表
+
+    Args:
+        pipeline: NLP 处理管线
+        enabled_sources: 启用的信息源标识列表 (如 ["eastmoney", "cls", ...])
+
+    Returns:
+        适配器实例列表
+    """
+    adapters: List[BaseAdapter] = []
+    for source_name in enabled_sources:
+        source_name = source_name.lower().strip()
+        # 找匹配的 InfoSource
+        matching = None
+        for src, cls in _ADAPTER_REGISTRY.items():
+            if src.value == source_name:
+                matching = cls
+                break
+        if matching:
+            adapters.append(matching(pipeline))
+            logging.info("[AdapterRegistry] 已注册: %s", source_name)
+        else:
+            logging.warning("[AdapterRegistry] 未知信息源: %s", source_name)
+    return adapters
