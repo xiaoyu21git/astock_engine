@@ -5,7 +5,7 @@ rules:
     name: 趋势参与资格过滤规则
     stage: eligibility
     priority: 88
-    description: 成交活跃度、趋势斜率与均线偏离仍处于可参与区间时，允许进入后续趋势信号确认。
+    description: 标的必须在成交活跃度、均线位置与趋势斜率三个维度同时满足收紧后的门槛, 才允许进入后续趋势信号确认。不满足任一条件的候选静默丢弃。
     tags: [a_share_trend, eligibility, liquidity, trend, ma20, ma60]
     when:
       op: all
@@ -13,7 +13,7 @@ rules:
         - op: ge
           left:
             var: candidate.volume_ratio_to_5d_avg
-          right: 0.30
+          right: 0.60
         - op: any
           conditions:
             - op: all
@@ -21,31 +21,31 @@ rules:
                 - op: ge
                   left:
                     var: candidate.close_to_ma20_ratio
-                  right: 0.955
+                  right: 0.970
                 - op: le
                   left:
                     var: candidate.close_to_ma20_ratio
-                  right: 1.18
+                  right: 1.10
             - op: all
               conditions:
                 - op: ge
                   left:
                     var: candidate.close_to_ma60_ratio
-                  right: 0.970
+                  right: 0.980
                 - op: le
                   left:
                     var: candidate.close_to_ma60_ratio
-                  right: 1.20
+                  right: 1.12
         - op: any
           conditions:
             - op: ge
               left:
                 var: candidate.ma20_trend_slope
-              right: -0.012
+              right: -0.005
             - op: ge
               left:
                 var: candidate.ma60_trend_slope
-              right: -0.006
+              right: -0.003
     then:
       result: pass
       reason_code: trend_participation_guard_pass

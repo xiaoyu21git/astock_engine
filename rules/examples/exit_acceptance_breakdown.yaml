@@ -1,51 +1,154 @@
 version: 1
 namespace: trading.exit.acceptance_breakdown
 rules:
-  - id: acceptance-breakdown-full-exit
-    name: 承接走弱彻底退出规则
+  # ═══ 六级出场: 止损在前(exit) → 支撑破位在后(after reduces) → 承接兜底 ═══
+
+  - id: hard-stop-pnl-floor
+    name: 硬止损 (最后防线)
     stage: rebalance
-    priority: 93
-    description: 承接显著恶化且趋势破坏确认时，直接退出。
-    tags: [a_share_short_term, exit, acceptance, breakdown]
+    priority: 97
+    description: 亏损达到-12%, 无条件清仓退出。
+    tags: [stop_loss, hard_exit]
     when:
-      op: all
-      conditions:
-        - op: lt
-          left:
-            var: position.acceptance_strength_score
-          right: 35
-        - op: truthy
-          value:
-            var: position.trend_damage_confirmed
+      op: le
+      left:
+        var: position.pnl_percent
+      right: -12
     then:
       result: exit
-      reason_code: acceptance_breakdown_full_exit
-      message: 承接崩塌且趋势损坏，执行退出
+      reason_code: hard_stop_pnl_floor
+      message: 亏损达到-12%, 无条件清仓
       payload:
         reduce_ratio: 1.0
-        state: cooldown
+        state: hard_stopped
 
-  - id: acceptance-breakdown-reduce
-    name: 承接走弱减仓规则
+  - id: breakdown-accelerate-exit
+    name: 破位加速止损
+    stage: rebalance
+    priority: 94
+    description: 亏损超5%且收盘跌破MA20达3%以上, 下跌在加速, 不等硬止损。
+    tags: [stop_loss, breakdown_accelerate, exit]
+    when:
+      op: all
+      conditions:
+        - op: lt
+          left:
+            var: position.pnl_percent
+          right: -5
+        - op: lt
+          left:
+            var: position.close_below_rebound_pivot_ratio
+          right: 0.97
+    then:
+      result: exit
+      reason_code: breakdown_accelerate_exit
+      message: 亏损+破MA20支撑, 下跌加速, 提前截断
+      payload:
+        reduce_ratio: 1.0
+        state: breakdown_exited
+
+  - id: profit-trailing-stop
+    name: 利润保护止损
+    stage: rebalance
+    priority: 92
+    description: 已有12%以上可观利润, 从持仓高点回撤12%立即清仓保护利润。
+    tags: [stop_loss, trailing_stop, profit_protect]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: position.pnl_percent
+          right: 12
+        - op: ge
+          left:
+            var: position.trailing_drawdown_ratio
+          right: 0.12
+    then:
+      result: exit
+      reason_code: profit_trailing_stop
+      message: 利润保护触发, 从高点回撤12%, 清仓锁定利润
+      payload:
+        reduce_ratio: 1.0
+        state: profit_protected
+
+  - id: trend-damage-exit
+    name: 趋势破坏退出
+    stage: rebalance
+    priority: 91
+    description: 收盘跌破MA20且MA20斜率转负, 趋势结构已确认破坏。唯一基于趋势结构的出场——不会被反复穿越骗炮。
+    tags: [stop_loss, trend_damage, exit]
+    when:
+      op: truthy
+      value:
+        var: position.trend_damage_confirmed
+    then:
+      result: exit
+      reason_code: trend_damage_exit
+      message: 趋势结构已确认破坏, 执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: trend_damaged
+
+  - id: support-break-exit
+    name: 支撑破位退出
+    stage: rebalance
+    priority: 82
+    description: 收盘跌破MA20(close/MA20<0.99)。排在止盈减仓(p86-p80)之后, 给MA5破位减仓一个观察机会。减仓后若继续恶化至此才清仓。
+    tags: [stop_loss, support_break, exit]
+    when:
+      op: lt
+      left:
+        var: position.close_below_rebound_pivot_ratio
+      right: 0.99
+    then:
+      result: exit
+      reason_code: support_break_exit
+      message: 跌破MA20支撑, 上涨结构受损, 清仓
+      payload:
+        reduce_ratio: 1.0
+        state: support_broken_exit
+
+  - id: acceptance-collapse-exit
+    name: 承接崩塌退出
+    stage: rebalance
+    priority: 88
+    description: 日内承接评分低于20, 买方完全消失, 独立触发退出。
+    tags: [stop_loss, acceptance_collapse, exit]
+    when:
+      op: lt
+      left:
+        var: position.acceptance_strength_score
+      right: 20
+    then:
+      result: exit
+      reason_code: acceptance_collapse_exit
+      message: 承接崩塌, 买方消失, 执行退出
+      payload:
+        reduce_ratio: 1.0
+        state: acceptance_collapsed
+
+  - id: acceptance-weaken-reduce
+    name: 预警减仓
     stage: rebalance
     priority: 84
-    description: 承接走弱但趋势尚未完全破坏时，先收缩仓位。
-    tags: [a_share_short_term, exit, acceptance, reduce]
+    description: 承接转弱(评分<40)且日内有明显抛压(开-低≥2%), 先减半仓观察。
+    tags: [stop_loss, acceptance_weaken, reduce]
     when:
       op: all
       conditions:
         - op: lt
           left:
             var: position.acceptance_strength_score
-          right: 55
+          right: 40
         - op: ge
           left:
             var: position.intraday_pullback_percent
-          right: 2.5
+          right: 2.0
     then:
       result: reduce
-      reason_code: acceptance_breakdown_reduce
-      message: 承接明显转弱，先减仓处理
+      reason_code: acceptance_weaken_reduce
+      message: 承接转弱且日内抛压明显, 减半仓
       payload:
-        reduce_ratio: 0.33
+        reduce_ratio: 0.50
         state: defense_mode

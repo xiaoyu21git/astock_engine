@@ -5,7 +5,7 @@ rules:
     name: 趋势结构破坏阻断规则
     stage: signal
     priority: 98
-    description: 标的已明显跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时，阻断继续按趋势候选开仓。
+    description: 标的已跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时, 阻断继续按趋势候选开仓。阈值较前版收紧以拦截更多弱候选。
     tags: [a_share_trend, watch, trend, breakdown, veto, ma20, ma60]
     when:
       op: any
@@ -15,49 +15,49 @@ rules:
             - op: lt
               left:
                 var: candidate.close_to_ma20_ratio
-              right: 0.940
+              right: 0.960
             - op: lt
               left:
                 var: candidate.ma20_trend_slope
-              right: -0.020
+              right: -0.010
             - op: lt
               left:
                 var: candidate.volume_ratio_to_5d_avg
-              right: 0.45
+              right: 0.55
         - op: all
           conditions:
             - op: lt
               left:
                 var: candidate.close_to_ma60_ratio
-              right: 0.960
+              right: 0.970
             - op: lt
               left:
                 var: candidate.ma60_trend_slope
-              right: -0.010
+              right: -0.005
             - op: lt
               left:
                 var: candidate.volume_ratio_to_5d_avg
-              right: 0.45
+              right: 0.55
         - op: all
           conditions:
             - op: lt
               left:
                 var: candidate.volume_ratio_to_5d_avg
-              right: 0.22
+              right: 0.35
             - op: all
               conditions:
                 - op: lt
                   left:
                     var: candidate.ma20_trend_slope
-                  right: -0.010
+                  right: -0.005
                 - op: lt
                   left:
                     var: candidate.ma60_trend_slope
-                  right: -0.005
+                  right: -0.003
     then:
       result: block
       reason_code: trend_structure_breakdown_block
-      message: 标的趋势结构已明显走坏，阻断继续按趋势候选开仓
+      message: 标的趋势结构已明显走坏, 阻断继续按趋势候选开仓
       payload:
         state: abandoned
         action: unwatch

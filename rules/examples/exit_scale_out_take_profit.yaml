@@ -1,66 +1,64 @@
 version: 1
 namespace: trading.exit.scale_out_take_profit
 rules:
-  - id: scale-out-take-profit-first
-    name: 分批止盈第一档
+  # ═══ 止盈: 纯趋势结构信号, 无评分阈值 ═══
+
+  - id: profit-ma5-break-reduce
+    name: 破5日线减仓
     stage: rebalance
-    priority: 85
-    description: 浮盈达到第一档且趋势未完全破坏时，先减仓一部分落袋。
-    tags: [exit, scale_out, take_profit]
+    priority: 86
+    description: 浮盈3%以上但收盘跌破5日线。上升趋势中价格应沿5日线攀升, 跌破说明短线动能转弱——可能只是回调也可能是趋势逆转的开始。先减仓30%观察, 若回踩20日线不破可再加仓。
+    tags: [take_profit, ma5_break, reduce]
     when:
       op: all
       conditions:
         - op: ge
           left:
             var: position.pnl_percent
-          right: 12
+          right: 3
         - op: lt
           left:
-            var: position.pnl_percent
-          right: 20
-        - op: ge
-          left:
-            var: position.trend_health_score
-          right: 60
+            var: position.close_below_board_pivot_ratio
+          right: 1.0
     then:
       result: reduce
-      reason_code: scale_out_take_profit_first
-      message: 浮盈达到第一档，执行分批止盈
+      reason_code: profit_ma5_break_reduce
+      message: 跌破5日线, 短线动能转弱, 减仓30%
       payload:
-        reduce_ratio: 0.33
-        state: partial_take_profit
+        reduce_ratio: 0.30
+        state: ma5_reduced
 
-  - id: scale-out-take-profit-second
-    name: 分批止盈第二档
+  - id: profit-pressure-reduce
+    name: 前高压力减仓
     stage: rebalance
-    priority: 90
-    description: 浮盈继续扩张但趋势出现放缓，进一步兑现收益。
-    tags: [exit, scale_out, take_profit]
+    priority: 83
+    description: 浮盈3%以上且收盘接近60日前高(≥90%), 前高是重要阻力位, 一次性突破概率不高, 先减仓30%。突破后回踩确认再加仓。
+    tags: [take_profit, pressure, reduce]
     when:
       op: all
       conditions:
         - op: ge
           left:
             var: position.pnl_percent
-          right: 20
-        - op: lt
+          right: 3
+        - op: ge
           left:
-            var: position.trend_health_score
-          right: 70
+            var: position.previous_high_breakout_ratio
+          right: 0.90
     then:
       result: reduce
-      reason_code: scale_out_take_profit_second
-      message: 浮盈达到第二档，继续分批止盈
+      reason_code: profit_pressure_reduce
+      message: 接近前高压力位, 减仓30%
       payload:
-        reduce_ratio: 0.5
-        state: scaled_out
+        reduce_ratio: 0.30
+        state: pressure_reduced
 
-  - id: take-profit-full-exit
-    name: 趋势破坏后的止盈退出
+  - id: profit-overextend-reduce
+    name: 超涨减仓
     stage: rebalance
-    priority: 95
-    description: 已有较大浮盈且趋势结构破坏时，直接完成止盈退出。
-    tags: [exit, take_profit, full_exit]
+    priority: 80
+    description: 浮盈8%以上且收盘超MA20的110%, 短期涨幅过大已远离中期均线, 均值回归压力显著, 减仓30%。
+    tags: [take_profit, overextend, reduce]
     when:
       op: all
       conditions:
@@ -68,14 +66,14 @@ rules:
           left:
             var: position.pnl_percent
           right: 8
-        - op: lt
+        - op: ge
           left:
-            var: position.trend_health_score
-          right: 45
+            var: position.close_below_rebound_pivot_ratio
+          right: 1.10
     then:
-      result: exit
-      reason_code: take_profit_full_exit
-      message: 趋势破坏，执行止盈退出
+      result: reduce
+      reason_code: profit_overextend_reduce
+      message: 超涨远离20日线, 减仓30%
       payload:
-        reduce_ratio: 1.0
-        state: cooldown
+        reduce_ratio: 0.30
+        state: overextend_reduced

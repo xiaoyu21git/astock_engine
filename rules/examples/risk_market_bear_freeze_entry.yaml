@@ -1,39 +1,73 @@
 version: 1
 namespace: trading.risk.market_bear_freeze_entry
 rules:
-  - id: market-bear-freeze-entry
-    name: 熊市冻结新开仓
+  # ═══ 三级熊市冻结: 拆分原四条件 AND 为独立 OR 规则, 大幅提升冻结覆盖 ═══
+
+  - id: market-bear-regime-freeze
+    name: 熊市体制冻结
     stage: market
-    priority: 96
-    description: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位，防止在系统性下行中持续试错。
+    priority: 99
+    description: 市场进入熊市体制(全市场站上MA60比例≤35%)即无条件冻结新开仓, 不再等待回撤/波动率确认。
     tags: [market, risk, bear_market, freeze]
+    when:
+      op: eq
+      left:
+        var: market.regime_state
+      right: bear
+    then:
+      result: freeze
+      reason_code: market_bear_regime_freeze
+      message: 市场处于熊市体制, 冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: bear_regime_freeze
+        blocked_actions: [candidate_entry, open]
+        focus: 熊市不买, 等待系统性企稳
+
+  - id: market-near-bear-freeze
+    name: 准熊市退潮冻结
+    stage: market
+    priority: 97
+    description: 市场宽度不足30%且等权指数回撤超过10%, 虽未触发熊市体制但已处于系统性退潮边缘, 冻结新开仓。
+    tags: [market, risk, near_bear, freeze]
     when:
       op: all
       conditions:
-        - op: eq
-          left:
-            var: market.regime_state
-          right: bear
         - op: lt
           left:
             var: market.breadth_above_ma60_ratio
-          right: 0.35
+          right: 0.30
         - op: ge
           left:
             var: market.drawdown_from_recent_high
-          right: 0.12
-        - op: ge
-          left:
-            var: market.volatility_shock_score
-          right: 0.62
+          right: 0.10
     then:
       result: freeze
-      reason_code: market_bear_freeze_entry
-      message: 市场处于熊市退潮阶段，冻结新增仓位
+      reason_code: market_near_bear_freeze
+      message: 市场宽度严重不足且回撤显著, 冻结新增仓位
       payload:
         state: frozen
-        gate_level: bear_market_freeze
+        gate_level: near_bear_freeze
         blocked_actions: [candidate_entry, open]
-        focus: 优先防守、减仓和等待系统性企稳
-      state:
-        market_state: frozen
+        focus: 退潮加速, 防守优先
+
+  - id: market-panic-vol-freeze
+    name: 恐慌波动冻结
+    stage: market
+    priority: 95
+    description: 短期波动率达到长期均值的70%以上(波动冲击评分≥0.70), 无论市场体制如何, 冻结新开仓。
+    tags: [market, risk, panic_vol, freeze]
+    when:
+      op: ge
+      left:
+        var: market.volatility_shock_score
+      right: 0.70
+    then:
+      result: freeze
+      reason_code: market_panic_vol_freeze
+      message: 市场波动剧烈, 冻结新增仓位
+      payload:
+        state: frozen
+        gate_level: panic_vol_freeze
+        blocked_actions: [candidate_entry, open]
+        focus: 恐慌波动中不接飞刀

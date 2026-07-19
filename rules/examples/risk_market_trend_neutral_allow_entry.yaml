@@ -5,7 +5,7 @@ rules:
     name: 趋势中性环境放行规则
     stage: market
     priority: 82
-    description: 市场未出现明显系统性走弱且回撤压力仍可承受时，允许日线趋势策略继续筛选新增仓位。
+    description: 市场体制为牛市或震荡且回撤可控时允许日线趋势策略筛选新仓。不再以极低阈值(breadth≥0.12, strength≥0.02)做橡皮图章放行。
     tags: [market, gate, trend, neutral_market, allow_entry]
     when:
       op: all
@@ -13,7 +13,7 @@ rules:
         - op: le
           left:
             var: market.drawdown_from_recent_high
-          right: 0.30
+          right: 0.25
         - op: any
           conditions:
             - op: eq
@@ -24,18 +24,10 @@ rules:
               left:
                 var: market.regime_state
               right: sideways
-            - op: ge
-              left:
-                var: market.breadth_above_ma60_ratio
-              right: 0.12
-            - op: ge
-              left:
-                var: market.trend_strength_score
-              right: 0.02
     then:
       result: state_switch
       reason_code: market_trend_neutral_allow_entry
-      message: 市场仍处于可承受的趋势环境，允许继续筛选日线趋势新增仓位
+      message: 市场处于牛市或震荡体制且回撤可控, 允许筛选日线趋势新仓
       payload:
         state: selective_active
         gate_level: trend_neutral_allow

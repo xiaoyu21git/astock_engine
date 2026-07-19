@@ -43,7 +43,7 @@ templates:
     display_name: 分批止盈模板
     file_name: exit_scale_out_take_profit.yaml
     phase: rebalance
-    summary: 盈利达到目标后先减仓，趋势破坏时彻底退出。
+    summary: 四级止盈(压力+超涨+支撑+回吐): 前高压力92%减30→超涨MA20/110%减30→支撑破位<0.98清仓→回吐≥5%清仓
     actions:
       - reduce
       - exit
@@ -56,7 +56,7 @@ templates:
     display_name: 情绪退潮冻结模板
     file_name: risk_market_emotion_cooling_freeze.yaml
     phase: market
-    summary: 情绪退潮并伴随承接、回封率或题材宽度同步转弱时，切换防守冻结态。
+    summary: 市场情绪退潮或恐慌且市场宽度或回封率恶化时, 使用freeze动作无条件冻结新开仓。
     actions:
       - state_switch
       - freeze
@@ -146,7 +146,7 @@ templates:
     display_name: 承接走弱退出模板
     file_name: exit_acceptance_breakdown.yaml
     phase: rebalance
-    summary: 承接显著走弱或回落扩大时，先减仓再视趋势损伤退出。
+    summary: 五级止损(硬止损+破位加速+趋势破坏+承接崩塌+减仓): -12%→亏5%+破MA20→趋势坏→承接<20→承接<40+日内回撤≥2%减半仓
     actions:
       - reduce
       - exit
@@ -266,7 +266,7 @@ templates:
     display_name: 趋势参与资格过滤模板
     file_name: eligibility_trend_participation_guard.yaml
     phase: eligibility
-    summary: 成交活跃度、趋势斜率与均线偏离仍处于可参与区间时，允许进入后续趋势信号确认。
+    summary: 量比≥0.60、均线偏离收紧至±10~12%、斜率门槛提升, 三个维度同时满足才放行。不满足任一条件静默丢弃。
     actions:
       - pass
     tags:
@@ -279,7 +279,7 @@ templates:
     display_name: 趋势结构破坏阻断模板
     file_name: watch_trend_structure_breakdown.yaml
     phase: signal
-    summary: 标的已明显跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时，阻断继续按趋势候选开仓。
+    summary: 标的跌破趋势支撑、均线斜率转弱或成交活跃度塌陷时阻断候选开仓。阈值较前版收紧以拦截更多弱候选。
     actions:
       - block
       - unwatch
@@ -1018,7 +1018,7 @@ templates:
     display_name: 趋势中性环境放行模板
     file_name: risk_market_trend_neutral_allow_entry.yaml
     phase: market
-    summary: 市场未进入熊市且广度、趋势强度与回撤压力仍在可承受区间时，允许日线趋势策略继续筛选新增仓位。
+    summary: 市场体制为牛市或震荡且回撤≤25%时允许筛选新仓。已移除breadth≥0.12和strength≥0.02橡皮图章分支。
     actions:
       - state_switch
     tags:
@@ -1042,7 +1042,7 @@ templates:
     display_name: 熊市冻结新开仓模板
     file_name: risk_market_bear_freeze_entry.yaml
     phase: market
-    summary: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位。
+    summary: 三级熊市冻结: 熊市体制→准熊市退潮→恐慌波动, 独立OR触发冻结。不再要求四条件同时满足。
     actions:
       - freeze
     tags:
