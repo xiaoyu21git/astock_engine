@@ -1,79 +1,13 @@
 version: 1
 namespace: trading.exit.scale_out_take_profit
-rules:
-  # ═══ 止盈: 纯趋势结构信号, 无评分阈值 ═══
-
-  - id: profit-ma5-break-reduce
-    name: 破5日线减仓
-    stage: rebalance
-    priority: 86
-    description: 浮盈3%以上但收盘跌破5日线。上升趋势中价格应沿5日线攀升, 跌破说明短线动能转弱——可能只是回调也可能是趋势逆转的开始。先减仓30%观察, 若回踩20日线不破可再加仓。
-    tags: [take_profit, ma5_break, reduce]
-    when:
-      op: all
-      conditions:
-        - op: ge
-          left:
-            var: position.pnl_percent
-          right: 3
-        - op: lt
-          left:
-            var: position.close_below_board_pivot_ratio
-          right: 1.0
-    then:
-      result: reduce
-      reason_code: profit_ma5_break_reduce
-      message: 跌破5日线, 短线动能转弱, 减仓30%
-      payload:
-        reduce_ratio: 0.30
-        state: ma5_reduced
-
-  - id: profit-pressure-reduce
-    name: 前高压力减仓
-    stage: rebalance
-    priority: 83
-    description: 浮盈3%以上且收盘接近60日前高(≥90%), 前高是重要阻力位, 一次性突破概率不高, 先减仓30%。突破后回踩确认再加仓。
-    tags: [take_profit, pressure, reduce]
-    when:
-      op: all
-      conditions:
-        - op: ge
-          left:
-            var: position.pnl_percent
-          right: 3
-        - op: ge
-          left:
-            var: position.previous_high_breakout_ratio
-          right: 0.90
-    then:
-      result: reduce
-      reason_code: profit_pressure_reduce
-      message: 接近前高压力位, 减仓30%
-      payload:
-        reduce_ratio: 0.30
-        state: pressure_reduced
-
-  - id: profit-overextend-reduce
-    name: 超涨减仓
-    stage: rebalance
-    priority: 80
-    description: 浮盈8%以上且收盘超MA20的110%, 短期涨幅过大已远离中期均线, 均值回归压力显著, 减仓30%。
-    tags: [take_profit, overextend, reduce]
-    when:
-      op: all
-      conditions:
-        - op: ge
-          left:
-            var: position.pnl_percent
-          right: 8
-        - op: ge
-          left:
-            var: position.close_below_rebound_pivot_ratio
-          right: 1.10
-    then:
-      result: reduce
-      reason_code: profit_overextend_reduce
-      message: 超涨远离20日线, 减仓30%
-      payload:
-        reduce_ratio: 0.30
-        state: overextend_reduced
+# ═══ 2026-07-22 重构: 分批减仓规则已废弃 ═══
+# 旧规则 (profit-ma5-break-reduce / profit-pressure-reduce / profit-overextend-reduce)
+# 均为 减仓30% 的被动跟随型出场, 反复减仓磨损利润, 且无主动截断亏损能力。
+#
+# 已迁移到 exit_acceptance_breakdown.yaml:
+#   - profit-trailing-stop-tight: 浮盈≥15% 后从高点回撤 5% → 全清 (移动止盈-紧)
+#   - profit-trailing-stop:       浮盈≥8%  后从高点回撤 8% → 全清 (移动止盈)
+#   - hard-stop-pnl-floor:        亏损 -8% → 全清 (硬止损, 原 -12%)
+#
+# 参数快照见 tools/exit_params_snapshot.md
+rules: []

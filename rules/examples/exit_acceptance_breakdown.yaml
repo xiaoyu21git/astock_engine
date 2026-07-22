@@ -7,17 +7,17 @@ rules:
     name: 硬止损 (最后防线)
     stage: rebalance
     priority: 97
-    description: 亏损达到-12%, 无条件清仓退出。
+    description: 亏损达到-8%, 无条件清仓退出。收紧止损线, 截断亏损不再容忍-12%。
     tags: [stop_loss, hard_exit]
     when:
       op: le
       left:
         var: position.pnl_percent
-      right: -12
+      right: -8
     then:
       result: exit
       reason_code: hard_stop_pnl_floor
-      message: 亏损达到-12%, 无条件清仓
+      message: 亏损达到-8%, 无条件清仓
       payload:
         reduce_ratio: 1.0
         state: hard_stopped
@@ -47,11 +47,36 @@ rules:
         reduce_ratio: 1.0
         state: breakdown_exited
 
+  - id: profit-trailing-stop-tight
+    name: 移动止盈-紧 (高位锁利)
+    stage: rebalance
+    priority: 93
+    description: 已有15%以上大幅利润, 从持仓高点回撤5%立即清仓, 锁住大部分利润不还回去。
+    tags: [stop_loss, trailing_stop, profit_protect, tight]
+    when:
+      op: all
+      conditions:
+        - op: ge
+          left:
+            var: position.pnl_percent
+          right: 15
+        - op: ge
+          left:
+            var: position.trailing_drawdown_ratio
+          right: 0.05
+    then:
+      result: exit
+      reason_code: profit_trailing_stop_tight
+      message: 高位移动止盈触发, 浮盈15%+从高点回撤5%, 锁仓
+      payload:
+        reduce_ratio: 1.0
+        state: profit_tight_locked
+
   - id: profit-trailing-stop
     name: 利润保护止损
     stage: rebalance
     priority: 92
-    description: 已有12%以上可观利润, 从持仓高点回撤12%立即清仓保护利润。
+    description: 已有8%以上可观利润, 从持仓高点回撤8%立即清仓保护利润。
     tags: [stop_loss, trailing_stop, profit_protect]
     when:
       op: all
@@ -59,15 +84,15 @@ rules:
         - op: ge
           left:
             var: position.pnl_percent
-          right: 12
+          right: 8
         - op: ge
           left:
             var: position.trailing_drawdown_ratio
-          right: 0.12
+          right: 0.08
     then:
       result: exit
       reason_code: profit_trailing_stop
-      message: 利润保护触发, 从高点回撤12%, 清仓锁定利润
+      message: 利润保护触发, 从高点回撤8%, 清仓锁定利润
       payload:
         reduce_ratio: 1.0
         state: profit_protected
@@ -94,7 +119,7 @@ rules:
     name: 支撑破位退出
     stage: rebalance
     priority: 82
-    description: 收盘跌破MA20(close/MA20<0.99)。排在止盈减仓(p86-p80)之后, 给MA5破位减仓一个观察机会。减仓后若继续恶化至此才清仓。
+    description: 收盘跌破MA20(close/MA20<0.99)。排在移动止盈之后, 趋势尚未完全破坏时给趋势确认一个观察机会。
     tags: [stop_loss, support_break, exit]
     when:
       op: lt
