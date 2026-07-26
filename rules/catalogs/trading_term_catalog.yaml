@@ -43,7 +43,7 @@ templates:
     display_name: 分批止盈模板
     file_name: exit_scale_out_take_profit.yaml
     phase: rebalance
-    summary: 四级止盈(压力+超涨+支撑+回吐): 前高压力92%减30→超涨MA20/110%减30→支撑破位<0.98清仓→回吐≥5%清仓
+    summary: "四级止盈(压力+超涨+支撑+回吐): 前高压力92%减30→超涨MA20/110%减30→支撑破位<0.98清仓→回吐≥5%清仓"
     actions:
       - reduce
       - exit
@@ -146,7 +146,7 @@ templates:
     display_name: 承接走弱退出模板
     file_name: exit_acceptance_breakdown.yaml
     phase: rebalance
-    summary: 五级止损(硬止损+破位加速+趋势破坏+承接崩塌+减仓): -12%→亏5%+破MA20→趋势坏→承接<20→承接<40+日内回撤≥2%减半仓
+    summary: "五级止损(硬止损+破位加速+趋势破坏+承接崩塌+减仓): -12%→亏5%+破MA20→趋势坏→承接<20→承接<40+日内回撤≥2%减半仓"
     actions:
       - reduce
       - exit
@@ -1042,13 +1042,25 @@ templates:
     display_name: 熊市冻结新开仓模板
     file_name: risk_market_bear_freeze_entry.yaml
     phase: market
-    summary: 三级熊市冻结: 熊市体制→准熊市退潮→恐慌波动, 独立OR触发冻结。不再要求四条件同时满足。
+    summary: "三级熊市冻结: 熊市体制→准熊市退潮→恐慌波动, 独立OR触发冻结。不再要求四条件同时满足。"
     actions:
       - freeze
     tags:
       - risk
       - market_risk
       - bear_market
+
+  - template_id: template_risk_strategy_drawdown_freeze_v1
+    display_name: 策略回撤冻结模板
+    file_name: risk_strategy_drawdown_freeze.yaml
+    phase: market
+    summary: 账户从历史峰值回撤超过15%, 冻结新开仓。
+    actions:
+      - freeze
+    tags:
+      - risk
+      - strategy
+      - drawdown
 
 terms:
   - term_id: weak_to_strong

@@ -5,7 +5,7 @@ rules:
     name: 情绪退潮冻结新开仓
     stage: market
     priority: 100
-    description: 市场情绪处于退潮或恐慌且市场宽度或回封率同步恶化时, 无条件冻结新增仓位。注意: 使用 freeze 动作而非 state_switch, 确保规则闸门实际拦截。
+    description: "市场情绪处于退潮或恐慌且市场宽度或回封率同步恶化时, 无条件冻结新增仓位。注意: 使用 freeze 动作而非 state_switch, 确保规则闸门实际拦截。"
     tags: [market, risk, emotion_cycle, freeze]
     when:
       op: all

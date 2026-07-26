@@ -90,6 +90,11 @@ target_include_directories(eventbus_native PRIVATE
     ${CMAKE_SOURCE_DIR}/src/engine/include
 )
 
+# ==================== Debug: Python缺少debug库, 强制用release ====================
+if(WIN32 AND CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
+    set(Python_LIBRARIES "${Python_LIBRARY_RELEASE}")
+endif()
+
 # ==================== 链接库 ====================
 target_link_libraries(astock_engine_native PRIVATE
     astock_core

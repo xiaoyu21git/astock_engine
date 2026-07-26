@@ -1,0 +1,25 @@
+version: 1
+namespace: trading.risk.strategy_drawdown_freeze
+rules:
+  # ═══ 账户回撤冻结: 回撤≥10% 禁止新开仓 ═══
+  # 12%/15%/20% 的阶梯减仓由引擎层 positionFactor 处理
+
+  - id: strategy-drawdown-freeze
+    name: 账户回撤冻结
+    stage: market
+    priority: 87
+    description: 账户从历史峰值回撤超过15%, 冻结新开仓。
+    tags: [risk, strategy, drawdown, freeze]
+    when:
+      op: ge
+      left:
+        var: strategy.drawdown
+      right: 0.15
+    then:
+      result: freeze
+      reason_code: strategy_drawdown_freeze
+      message: 账户回撤超15%, 暂停开新仓
+      payload:
+        state: frozen
+        blocked_actions: [candidate_entry, open]
+        focus: 大幅回撤预警, 强制防御
