@@ -36,9 +36,11 @@ class EventScheduler:
         )
         self._publisher = EventPublisher()
         self._adapters: List[BaseAdapter] = []
+        self._commodity_hook = None  # 延迟初始化
         self._running = False
         self._poll_count = 0
         self._event_count = 0
+        self._commodity_event_count = 0
 
     def start(self):
         logger.info("=" * 50)
@@ -91,6 +93,8 @@ class EventScheduler:
             try:
                 events = await self._poll_all()
                 if events:
+                    # 商品突发事件检测
+                    events = self._process_commodity_events(events)
                     published = self._publisher.publish_batch(events)
                     self._event_count += published
                     if published > 0:
@@ -120,13 +124,31 @@ class EventScheduler:
                 events.extend(result)
         return events
 
+    def _process_commodity_events(self, events: List[FinancialEvent]) -> List[FinancialEvent]:
+        """商品突发事件检测 (在发布前注入)"""
+        try:
+            if self._commodity_hook is None:
+                from .commodity_hook import CommodityEventHook
+                self._commodity_hook = CommodityEventHook()
+            for event in events:
+                self._commodity_hook.process(event)
+            detected = self._commodity_hook.detection_count - self._commodity_event_count
+            self._commodity_event_count = self._commodity_hook.detection_count
+            if detected > 0:
+                logger.info("[Commodity] 检测到 %d 条商品突发事件 (累计 %d)",
+                            detected, self._commodity_event_count)
+        except Exception as e:
+            logger.warning("[Commodity] 商品事件检测异常: %s", e)
+        return events
+
     def _cleanup(self):
         for adapter in self._adapters:
             try:
                 asyncio.get_event_loop().run_until_complete(adapter.close())
             except Exception:
                 pass
-        logger.info("共 %d 轮轮询, %d 条事件发布", self._poll_count, self._event_count)
+        logger.info("共 %d 轮轮询, %d 条事件发布, %d 条商品信号",
+                    self._poll_count, self._event_count, self._commodity_event_count)
 
 
 def main():
