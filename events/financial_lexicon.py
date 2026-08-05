@@ -21,6 +21,15 @@ import os
 import re
 from typing import Dict, List, Optional, Tuple
 
+# 检测 transformers 版本兼容性: 5.x 移除了 encode_plus, HanLP 不可用
+try:
+    import importlib
+    _tf = importlib.import_module('transformers')
+    _tf_ver = tuple(int(x) for x in _tf.__version__.split('.')[:2])
+    _HANLP_OK = _tf_ver < (5, 0)
+except Exception:
+    _HANLP_OK = True  # 不确定时让 hanlp.load 自己试
+
 
 class FinancialLexicon:
     """金融情感词典引擎"""
@@ -153,17 +162,23 @@ class SentimentAnalyzer:
         """延迟加载 HanLP 分词器 (首次调用 ~5s)"""
         if self._tokenizer is not None:
             return
+        if not _HANLP_OK:
+            logging.info("[SentimentAnalyzer] transformers>=5 不兼容HanLP, 使用 jieba")
+            self._tokenizer = self._fallback_tokenizer
+            return
         try:
             import hanlp
-            self._tokenizer = hanlp.load(
+            model = hanlp.load(
                 hanlp.pretrained.tok.COARSE_ELECTRA_SMALL_ZH
             )
-            logging.info("[SentimentAnalyzer] HanLP 分词器加载完成")
+            model("测试")
+            self._tokenizer = model
+            logging.debug("[SentimentAnalyzer] HanLP 分词器加载完成")
         except ImportError:
             logging.debug("[SentimentAnalyzer] HanLP 不可用, 使用 jieba 降级")
             self._tokenizer = self._fallback_tokenizer
         except Exception as e:
-            logging.error("[SentimentAnalyzer] HanLP 加载失败: %s", e)
+            logging.warning("[SentimentAnalyzer] HanLP 不可用, 降级 jieba: %s", e)
             self._tokenizer = self._fallback_tokenizer
 
     def analyze(self, text: str) -> Tuple[float, dict]:
@@ -178,10 +193,18 @@ class SentimentAnalyzer:
         self._ensure_tokenizer()
 
         # HanLP 返回 list[str], jieba 也一样
-        if callable(self._tokenizer):
-            tokens = self._tokenizer(text)
-        else:
-            tokens = text.split()  # 极端降级
+        try:
+            if callable(self._tokenizer):
+                tokens = self._tokenizer(text)
+            else:
+                tokens = text.split()  # 极端降级
+        except Exception as e:
+            # HanLP/transformers 版本不兼容 (如 encode_plus 已移除), 降级到简单分词
+            logging.debug("[SentimentAnalyzer] 分词失败, 降级: %s", e)
+            import re
+            tokens = re.findall(r'[一-鿿]+|[a-zA-Z0-9]+|[^\s]', text)
+            if not tokens:
+                tokens = text.split()
 
         score, trace = self._lexicon.score_sequence(list(tokens))
 

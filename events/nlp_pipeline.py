@@ -19,6 +19,15 @@ from typing import Dict, List, Optional, Tuple
 from .event_types import FinancialEvent, FinancialEventType, InfoSource
 from .financial_lexicon import FinancialLexicon, SentimentAnalyzer
 
+# 检测 transformers 版本兼容性: 5.x 移除了 encode_plus, HanLP 不可用
+try:
+    import importlib
+    _tf = importlib.import_module('transformers')
+    _tf_ver = tuple(int(x) for x in _tf.__version__.split('.')[:2])
+    _HANLP_OK = _tf_ver < (5, 0)
+except Exception:
+    _HANLP_OK = True
+
 
 # ═══════════════════════════════════════════════════════════════
 # EntityRecognizer — 实体识别
@@ -71,25 +80,51 @@ class EntityRecognizer:
             self._stock_names.pop(ambiguous, None)
 
         self._loaded = True
-        logging.info("[EntityRecognizer] 标的注册表加载: %d 个标的",
+        self._build_name_automaton()
+        logging.info("[EntityRecognizer] 标的注册表加载: %d 个标的, 自动机就绪",
                      len(self._stock_codes))
+
+    def _build_name_automaton(self):
+        """构建 Aho-Corasick 自动机 — O(n+m) 多模式匹配"""
+        import ahocorasick
+        self._name_automaton = ahocorasick.Automaton()
+        for name, code in self._stock_names.items():
+            if len(name) >= 3:
+                self._name_automaton.add_word(name, (code, name))
+        self._name_automaton.make_automaton()
+
+    def _match_by_name(self, text: str) -> List[str]:
+        """直接匹配公司全称/简称"""
+        matched = set()
+        for end_idx, (code, _name) in self._name_automaton.iter(text):
+            matched.add(code)
+        return list(matched)
 
     def load_from_db(self, db_config: Optional[dict] = None):
         """从 PostgreSQL 加载标的注册表 (与 C++ MarketDataRepository 同源)"""
         try:
             import psycopg2
-            conn = psycopg2.connect(
-                **(db_config or {
-                    "host": "localhost", "port": 5432,
-                    "dbname": "astock_quant", "user": "postgres",
-                    "password": "", "connect_timeout": 5,
-                })
-            )
+
+            # 优先使用传入配置, 其次尝试项目 db_config, 最后用默认值
+            if db_config is None:
+                try:
+                    from tools.db_config import PG_CONFIG
+                    db_config = PG_CONFIG
+                except ImportError:
+                    db_config = {
+                        "host": "localhost", "port": 5432,
+                        "dbname": "astock_quant", "user": "postgres",
+                        "password": "", "connect_timeout": 5,
+                    }
+
+            conn = psycopg2.connect(**db_config)
             cur = conn.cursor()
+            # symbol 格式: "600000.SH" / "000001.SZ" — 匹配 6位数字.交易所后缀
+            # 注: ref.symbol_info 实际列名为 name (公司简称), 无 short_name/full_name
             cur.execute(
-                "SELECT si.symbol, si.short_name, si.full_name "
+                "SELECT si.symbol, si.name, si.name "
                 "FROM ref.symbol_info si "
-                r"WHERE si.is_listed = true AND si.symbol ~ '^\d{6}$' "
+                "WHERE si.status = 'ACTIVE' AND si.symbol ~ '^\\d{6}\\.(SH|SZ|BJ)$' "
                 "ORDER BY si.symbol"
             )
             rows = cur.fetchall()
@@ -105,19 +140,86 @@ class EntityRecognizer:
 
     # ── 实体提取 ──
 
+    @staticmethod
+    def _parse_ner_result(result) -> List[Tuple[str, str]]:
+        """解析 HanLP NER 输出，兼容多种格式。
+
+        旧格式: [('组织名', 'ORGANIZATION'), ('人名', 'PERSON'), ...]
+        新格式: [[], [('字', 'TYPE', 0, 2), ...], ...]  (字符级标注)
+        tensor: torch.Tensor → 转 list
+        """
+        if result is None:
+            return []
+
+        # tensor → list (transformers 4.x + torch 2.x)
+        if hasattr(result, 'tolist'):
+            result = result.tolist()
+        if not isinstance(result, list) or not result:
+            return []
+
+        # 检测格式: 第一个非空元素是 tuple → 旧格式; 是 list → 新格式
+        first = next((x for x in result if x), None)
+        if first is None:
+            return []
+        if isinstance(first, tuple):
+            # 旧格式: [(text, type), ...]
+            return [(str(r[0]), str(r[1])) for r in result if r]
+
+        # 新格式: 字符级 BIO 标注 → 合并同类型连续字符
+        entities: List[Tuple[str, str]] = []
+        current_chars: List[str] = []
+        current_type = ""
+        current_span = (-1, -1)
+
+        for char_result in result:
+            if not char_result:
+                # 非实体字符 → 结束当前实体
+                if current_chars:
+                    entities.append(("".join(current_chars), current_type))
+                    current_chars.clear()
+                    current_type = ""
+                continue
+
+            # 取第一个标注 (一个字符可能被多个实体标注, 只取最高置信度的)
+            tag = char_result[0]  # (char, type, start, end)
+            ch = str(tag[0])
+            etype = str(tag[1]) if len(tag) > 1 else ""
+            span = (int(tag[2]) if len(tag) > 2 else -1,
+                    int(tag[3]) if len(tag) > 3 else -1)
+
+            if etype == current_type and span == current_span:
+                current_chars.append(ch)
+            else:
+                if current_chars:
+                    entities.append(("".join(current_chars), current_type))
+                current_chars = [ch]
+                current_type = etype
+                current_span = span
+
+        if current_chars:
+            entities.append(("".join(current_chars), current_type))
+
+        return entities
+
     def _ensure_ner(self):
         if self._ner is not None:
             return
+        if not _HANLP_OK:
+            logging.info("[EntityRecognizer] transformers>=5 不兼容HanLP, 仅用正则")
+            self._ner = _FALLBACK_NER
+            return
         try:
             import hanlp
-            self._ner = hanlp.load(
+            model = hanlp.load(
                 hanlp.pretrained.ner.MSRA_NER_ELECTRA_SMALL_ZH)
-            logging.info("[EntityRecognizer] HanLP NER 模型加载完成")
+            model("测试")
+            self._ner = model
+            logging.debug("[EntityRecognizer] HanLP NER 模型加载完成")
         except ImportError:
             logging.warning("[EntityRecognizer] HanLP 不可用, NER 仅支持正则匹配")
             self._ner = _FALLBACK_NER
         except Exception as e:
-            logging.error("[EntityRecognizer] HanLP NER 加载失败: %s", e)
+            logging.warning("[EntityRecognizer] HanLP 不可用, 仅用正则: %s", e)
             self._ner = _FALLBACK_NER
 
     def extract(self, text: str) -> List[str]:
@@ -126,13 +228,18 @@ class EntityRecognizer:
 
         symbols: List[str] = []
 
-        # 1. HanLP NER: 机构名匹配
+        # 1. 公司名称直接匹配 (O(n+m), Aho-Corasick)
+        name_matches = self._match_by_name(text)
+        for code in name_matches:
+            if code not in symbols:
+                symbols.append(code)
+
+        # 2. HanLP NER: 机构名匹配
         if self._ner is not _FALLBACK_NER:
             try:
-                result = self._ner(text)
-                for entity_info in result:
-                    entity_text = entity_info[0]
-                    entity_type = entity_info[1]
+                result = self._ner.predict(text)
+                entities = self._parse_ner_result(result)
+                for entity_text, entity_type in entities:
                     if entity_type in ("ORGANIZATION", "PERSON", "LOCATION", "GPE"):
                         code = self._stock_names.get(entity_text)
                         if code and code not in symbols:

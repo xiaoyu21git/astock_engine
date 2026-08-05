@@ -164,8 +164,9 @@ class BaseAdapter(ABC):
             event = self._pipeline.process(title, content, self._source)
             if not event.symbols:
                 logging.debug(
-                    "[%s] 无关联标的: %s", self._source.value, title[:40])
-                return None
+                    "[%s] 无关联标的 (保留给商品事件检测): %s",
+                    self._source.value, title[:40])
+            # 始终返回event, 是否发布由scheduler层统一决策
             return event
         except Exception as e:
             logging.error(
@@ -211,8 +212,7 @@ class EastmoneyNewsAdapter(BaseAdapter):
                 )
                 if event:
                     events.append(event)
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_em_news(self) -> Optional[List[dict]]:
@@ -272,8 +272,7 @@ class CninfoAdapter(BaseAdapter):
                 event = self._process_item(title, content)
                 if event:
                     events.append(event)
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_cninfo(self) -> Optional[List[dict]]:
@@ -326,8 +325,7 @@ class ClsNewsAdapter(BaseAdapter):
                 if event:
                     events.append(event)
 
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_cls_telegraph(self) -> Optional[List[dict]]:
@@ -400,8 +398,7 @@ class XueqiuAdapter(BaseAdapter):
                 if event:
                     events.append(event)
 
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_xueqiu_hot(self) -> Optional[List[dict]]:
@@ -490,24 +487,15 @@ class SinaNewsAdapter(BaseAdapter):
                 if event:
                     events.append(event)
 
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_sina_finance(self) -> Optional[List[dict]]:
-        """新浪财经新闻 — AKShare"""
-        try:
-            import akshare as ak
-            df = ak.stock_info_global_sina()
-            return self._ak_dataframe_to_records(df)
-        except ImportError:
-            return None
-        except Exception as e:
-            logging.warning("[%s] 新浪财经 AKShare 异常: %s", self._source.value, e)
-            return await self._fetch_sina_http()
+        """新浪财经 — HTTP 直连 (akshare API 已失效, 跳过)"""
+        return await self._fetch_sina_http()
 
     async def _fetch_sina_http(self) -> Optional[List[dict]]:
-        """新浪财经 HTTP fallback"""
+        """新浪财经滚动新闻 API"""
         try:
             url = (
                 "https://feed.mix.sina.com.cn/api/roll/get?"
@@ -523,7 +511,7 @@ class SinaNewsAdapter(BaseAdapter):
                      "content": i.get("intro", i.get("ctime", ""))}
                     for i in items]
         except Exception as e:
-            logging.error("[%s] HTTP fallback 失败: %s", self._source.value, e)
+            logging.warning("[%s] HTTP 失败: %s", self._source.value, e)
             return None
 
 
@@ -564,33 +552,42 @@ class TonghuashunAdapter(BaseAdapter):
                 if event:
                     events.append(event)
 
-        if events:
-            logging.info("[%s] poll 完成: %d 条事件", self._source.value, len(events))
+        # 仅非空时报, 复用 scheduler 汇总
         return events
 
     async def _fetch_ths_hot_rank(self) -> Optional[List[dict]]:
-        """同花顺热门概念/板块排行"""
+        """同花顺热门概念/板块排行 (akshare 已失效, 尝试 HTTP)"""
         try:
             import akshare as ak
             df = ak.stock_hot_rank_ths()
             return self._ak_dataframe_to_records(df)
-        except ImportError:
-            return None
-        except Exception as e:
-            logging.warning("[%s] 同花顺热榜 AKShare 异常: %s", self._source.value, e)
-            return await self._fetch_ths_http()
+        except Exception:
+            return None  # 已知失效, 静默跳过, 不浪费时间重试 HTTP
 
     async def _fetch_ths_news(self) -> Optional[List[dict]]:
-        """同花顺行业/概念新闻"""
+        """同花顺概念新闻 — 过滤掉纯行情描述(涨跌%无语义价值)"""
         try:
             import akshare as ak
+            import re
             df = ak.stock_board_concept_name_ths()
             if df is None or (hasattr(df, 'empty') and df.empty):
                 return None
             records = df.tail(50).to_dict("records")
-            return [{"title": r.get("name", r.get("概念名称", "")),
-                     "content": r.get("reason", r.get("描述", ""))}
-                    for r in records]
+            items = []
+            for r in records:
+                reason = str(r.get("reason", r.get("描述", "")))
+                # 过滤: 纯行情描述(无实质内容)
+                if not reason or len(reason) < 10:
+                    continue
+                # 过滤: 仅包含涨跌百分比 (如 "板块涨2.5%")
+                if re.match(r'^[板块概念].{0,5}[涨跌][\d.]+%', reason):
+                    continue
+                items.append({
+                    "title": str(r.get("name", r.get("概念名称", ""))),
+                    "content": reason,
+                    "_ths_concept": True,
+                })
+            return items
         except ImportError:
             return None
         except Exception as e:
@@ -629,6 +626,10 @@ _ADAPTER_REGISTRY = {
     InfoSource.XUEQIU:      XueqiuAdapter,
     InfoSource.SINA:        SinaNewsAdapter,
     InfoSource.TONGHUASHUN: TonghuashunAdapter,
+    InfoSource.YAHOO:       (lambda p: __import__('astock_engine.events.adapters.yahoo_finance_adapter', fromlist=['YahooFinanceAdapter']).YahooFinanceAdapter(p)),
+    InfoSource.CNBC:        (lambda p: __import__('astock_engine.events.adapters.rss_adapter', fromlist=['RssNewsAdapter']).RssNewsAdapter(p, "cnbc")),
+    InfoSource.MARKETWATCH: (lambda p: __import__('astock_engine.events.adapters.rss_adapter', fromlist=['RssNewsAdapter']).RssNewsAdapter(p, "marketwatch")),
+    InfoSource.OILPRICE:    (lambda p: __import__('astock_engine.events.adapters.rss_adapter', fromlist=['RssNewsAdapter']).RssNewsAdapter(p, "oilprice")),
     # gm_sdk 由 C++ GmSessionEngine 直发 news.quote_alert，不走 Python
 }
 
@@ -657,7 +658,6 @@ def create_adapters(
                 break
         if matching:
             adapters.append(matching(pipeline))
-            logging.info("[AdapterRegistry] 已注册: %s", source_name)
         else:
-            logging.warning("[AdapterRegistry] 未知信息源: %s", source_name)
+            logging.warning("[Adapter] 未知信息源: %s", source_name)
     return adapters

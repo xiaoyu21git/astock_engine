@@ -18,14 +18,15 @@ class EventModuleConfig:
     sentiment_lexicon_path: str = ""  # 空 = 默认路径
 
     # ── 信息源 ──
+    # 经过实测验证可用的源 (2026-08-04):
     enabled_sources: List[str] = field(default_factory=lambda: [
-        "eastmoney",    # 东方财富全球快讯
-        "cninfo",       # 巨潮资讯公告
-        "cls",          # 财联社电报
-        "xueqiu",       # 雪球热帖
-        "sina",         # 新浪财经
-        "tonghuashun",  # 同花顺热榜/快讯
-        # "gm_sdk" 由 C++ GmSessionEngine 直发 news.quote_alert，不走 Python poll
+        "eastmoney",    # 东方财富全球快讯 ✓
+        "sina",         # 新浪财经滚动新闻 ✓
+        "tonghuashun",  # 同花顺概念快讯 ✓
+        "yahoo",        # Yahoo Finance RSS (原油/黄金/铜/天然气/农产品) ✓
+        "cnbc",         # CNBC RSS (国际财经头条) ✓
+        "marketwatch",  # MarketWatch RSS (美股市场) ✓
+        "oilprice",     # OilPrice.com (能源商品深度报道) ✓
     ])
 
     # ── 轮询间隔 (秒) ──

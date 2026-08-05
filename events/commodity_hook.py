@@ -43,7 +43,7 @@ EVENT_PATTERNS = [
      lambda m: ("trade_restriction", "贸易限制", 0.8)),
     (r"(反倾销|反补贴|加征关税|制裁|关税).{0,10}(进口|产品|商品|矿|材)",
      lambda m: ("trade_restriction", "贸易壁垒", 0.7)),
-    (r"(港口|码头|铁路|管道|航运|海运).{0,8}(封闭|中断|停运|拥堵|罢工|延误|瘫痪)",
+    (r"(港口|码头|铁路|管道|航运|海运).{0,8}(封闭|中断|停运|拥堵|罢工|延误|瘫痪|封港)",
      lambda m: ("logistics_disruption", "运输中断", 0.8)),
     (r"(国储|收储|抛储|轮储|战略储备|储备).{0,6}(铜|铝|锌|镍|棉花|白糖|橡胶|原油|猪肉|稀土|锂|钴|钨)",
      lambda m: ("reserve_operation", "国储操作", 0.9)),
@@ -91,9 +91,10 @@ COMMODITY_KEYWORDS = {
     "锂": ["lithium_carbonate", "lithium"], "碳酸锂": ["lithium_carbonate"],
     "铜": ["copper"], "铝": ["aluminum"], "锌": ["zinc"], "铅": ["lead"],
     "镍": ["nickel"], "锡": ["tin"], "黄金": ["gold"], "白银": ["silver"],
-    "铁矿石": ["iron_ore"], "螺纹钢": ["rebar"], "热轧": ["hot_rolled_coil"],
+    "铁矿石": ["iron_ore"], "螺纹钢": ["rebar"], "粗钢": ["rebar"], "热轧": ["hot_rolled_coil"],
     "焦煤": ["coking_coal"], "焦炭": ["coke"], "动力煤": ["thermal_coal"], "煤": ["thermal_coal"],
-    "原油": ["crude_oil"], "石油": ["crude_oil"], "天然气": ["natural_gas"],
+    "原油": ["crude_oil"], "石油": ["crude_oil"], "万桶": ["crude_oil"],
+    "天然气": ["natural_gas"],
     "PTA": ["pta"], "乙二醇": ["ethylene_glycol"], "聚丙烯": ["polypropylene"],
     "PVC": ["pvc"], "甲醇": ["methanol"], "纯碱": ["soda_ash"], "烧碱": ["caustic_soda"],
     "尿素": ["urea"], "苯乙烯": ["styrene"], "醋酸": ["acetic_acid"],
@@ -145,6 +146,13 @@ class CommodityEventHook:
             "supply_disruption","policy_restriction","trade_restriction",
             "logistics_disruption","reserve_operation") else -1
 
+        # 方向修正: 外国限制中国出口 → 利空中国生产者
+        if event_type == "trade_restriction":
+            foreign_restrict = any(kw in text for kw in
+                ["对华","对中国","美方","美国","欧盟","日本","印度","韩国","禁止进口中国","加征关税"])
+            if foreign_restrict:
+                direction = -1  # 中国商品被禁 → 利空中国上游
+
         for pid in commodities:
             results.append({
                 "product_id": pid,
@@ -162,9 +170,16 @@ class CommodityEventHook:
 
         if commodity_events:
             self._detection_count += 1
+            # 最高紧急度
+            max_urgency = max(ce["urgency"] for ce in commodity_events)
             # 序列化到 tags (EventBus 兼容)
             event.tags["commodity_event"] = "true"
             event.tags["commodity_count"] = str(len(commodity_events))
+            # 商品事件分级元数据 (强制 sector 级别)
+            event.tags["level"] = "sector"
+            event.tags["severity"] = "urgent" if max_urgency >= 0.8 else "high" if max_urgency >= 0.6 else "normal"
+            event.tags["severity_val"] = str(max_urgency)
+            event.tags["action"] = "reduce_exposure" if max_urgency >= 0.8 else "reduce_position"
             for i, ce in enumerate(commodity_events[:5]):  # 最多5个
                 prefix = f"cm_{i}"
                 event.tags[f"{prefix}_pid"] = ce["product_id"]
@@ -177,7 +192,7 @@ class CommodityEventHook:
             self._write_signal(event, commodity_events)
 
             logger.info(f"[CommodityHook] 检测到商品事件: "
-                        f"{len(commodity_events)}品种 | {event.title[:60]}")
+                        f"{len(commodity_events)}品种 紧急度={max_urgency:.2f} | {event.title[:60]}")
 
         return event
 
@@ -218,6 +233,8 @@ class CommodityEventHook:
             self._pg.commit()
         except Exception as e:
             logger.warning(f"[CommodityHook] PG写入失败: {e}")
+            try: self._pg.rollback()
+            except: pass
 
     def _ensure_pg(self):
         """延迟初始化 PG 连接"""

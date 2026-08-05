@@ -52,9 +52,9 @@ class EventPublisher:
             logging.debug("[EventPublisher] C++ EventBus 不可用, 使用 Python fallback")
 
         try:
-            from astock_engine.core.eventbus_unified import UnifiedEventBus
-            self._bus = UnifiedEventBus.instance()
-            logging.info("[EventPublisher] Python EventBus fallback 已启用")
+            from astock_engine.core.eventbus_unified import EventBus
+            self._bus = EventBus()
+            logging.info("[EventPublisher] Python EventBus 已启用")
             return True
         except ImportError:
             logging.error("[EventPublisher] 无可用的 EventBus")
@@ -105,11 +105,21 @@ class EventPublisher:
 
     def _publish_one(self, event: "FinancialEvent") -> bool:
         """发布单条事件 (含重试)"""
-        fmt = self._to_event_format(event)
+        payload = event.to_event_format_data()
 
         for attempt in range(self.MAX_RETRIES + 1):
             try:
-                self._bus.publish(fmt, priority=1)
+                # 尝试 C++ EventBus (EventFormat + priority)
+                try:
+                    fmt = self._to_event_format(event)
+                    self._bus.publish(fmt, priority=1)
+                except (ImportError, TypeError):
+                    # Python EventBus: 构造 Event 对象, 单参调用
+                    from astock_engine.core.eventbus_simple import Event as PyEvent
+                    self._bus.publish(PyEvent(
+                        type=event.event_type.value,
+                        data=payload["data"],
+                    ))
                 self._published_count += 1
                 return True
             except Exception as e:
@@ -126,27 +136,17 @@ class EventPublisher:
 
     @staticmethod
     def _to_event_format(event: "FinancialEvent"):
-        """FinancialEvent → C++ EventFormat (pybind11)"""
-        try:
-            from eventbus_native import EventFormat, EventPriority
-            fmt = EventFormat()
-            fmt.type = event.event_type.value
-            fmt.priority = EventPriority.NORMAL
-
-            payload = event.to_event_format_data()
-            for key, value in payload["data"].items():
-                fmt.data[key] = value
-            for key, value in payload["metadata"].items():
-                fmt.metadata[key] = value
-
-            return fmt
-        except ImportError:
-            # Python EventBus fallback: 传 dict
-            return {
-                "type": event.event_type.value,
-                "data": event.to_event_format_data()["data"],
-                "metadata": event.to_event_format_data()["metadata"],
-            }
+        """FinancialEvent → C++ EventFormat (pybind11), 仅 C++ EventBus 路径使用"""
+        from eventbus_native import EventFormat, EventPriority
+        fmt = EventFormat()
+        fmt.type = event.event_type.value
+        fmt.priority = EventPriority.NORMAL
+        payload = event.to_event_format_data()
+        for key, value in payload["data"].items():
+            fmt.data[key] = value
+        for key, value in payload["metadata"].items():
+            fmt.metadata[key] = value
+        return fmt
 
     # ── 统计 ──
 
