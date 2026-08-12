@@ -30,6 +30,14 @@ FEATURE_FIELDS = [
     "roe", "industry_code",
 ]
 
+# 板块日频聚合列（Phase 1 产出，需重建 Arrow 缓存后可用）
+SECTOR_FIELDS = [
+    "sector_vwap_change", "sector_breadth", "sector_is_reliable",
+    "sector_money_flow_net", "sector_money_flow_ratio",
+    "sector_amplitude", "sector_relative_strength",
+    "sector_concentration", "sector_turnover_ratio",
+]
+
 # 市场环境特征 (截面统计量, 同一天所有股票共享)
 MARKET_FEATURES = [
     "market_ret",         # 全市场等权平均收益率
@@ -37,6 +45,8 @@ MARKET_FEATURES = [
     "market_volatility",  # 截面收益率标准差
     "industry_rel_ret",   # 个股收益 - 所属行业平均收益
 ]
+# ALL_FIELDS 已废弃 — 实际导出字段由 main() 中动态探测的 export_fields 决定
+# 保留定义以供外部脚本引用（不含板块字段，仅基础字段+市场特征）
 ALL_FIELDS = FEATURE_FIELDS + MARKET_FEATURES
 
 LOOKBACK = 20
@@ -196,6 +206,15 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
         idx_arr = np.where(mask, np.arange(n)[:, None], 0)
         np.maximum.accumulate(idx_arr, axis=0, out=idx_arr)
         feat = feat[idx_arr, np.arange(n_raw)]
+        # bfill: sector 等列在最早日期可能没有有效值，ffill 填不到开头
+        feat_rev = feat[::-1].copy()
+        mask_rev = np.isfinite(feat_rev)
+        idx_rev = np.where(mask_rev, np.arange(n)[:, None], 0)
+        np.maximum.accumulate(idx_rev, axis=0, out=idx_rev)
+        feat_rev = feat_rev[idx_rev, np.arange(n_raw)]
+        feat = feat_rev[::-1]
+        # 整个列都没有有效值（极端情况）→ 填 0
+        feat[~np.isfinite(feat)] = 0.0
         stock_feat[s] = feat
         stock_dates[s] = sorted_d
     del stock_data
@@ -262,6 +281,34 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
 
     print(f"[data] Step3 截面统计完成 ({time.time()-t0:.0f}s)")
 
+    # ── Step 3.5: 板块远期收益预计算（用于 sector-relative alpha 标签）──
+    # 对每个有效时间窗口计算 stock_ret = fut_c/now_c - 1，按 (anchor_date, industry_code) 分组求均值
+    sector_fwd_ret = {}  # (anchor_date, industry_code_int) → [stock_ret, ...]
+    for s in stock_feat:
+        feat = stock_feat[s]
+        dates = stock_dates[s]
+        n = len(dates)
+        if n < lookback + pred_horizon: continue
+        for i in range(lookback, n - pred_horizon):
+            now_c = feat[i, ci]
+            fut_c = feat[i + pred_horizon, ci]
+            if now_c <= 0 or fut_c <= 0: continue
+            if not np.isfinite(feat[i, ii]): continue
+            ind_code = int(feat[i, ii])
+            anchor = dates[i]
+            stock_ret = fut_c / now_c - 1.0
+            sector_fwd_ret.setdefault((anchor, ind_code), []).append(stock_ret)
+
+    sector_fwd_avg = {}  # (anchor_date, industry_code_int) → 板块平均远期收益
+    for key, rets in sector_fwd_ret.items():
+        if len(rets) >= 3:
+            sector_fwd_avg[key] = sum(rets) / len(rets)
+        else:
+            sector_fwd_avg[key] = 0.0  # 成分股 < 3 只，不调整（保留原始绝对收益）
+
+    print(f"[data] Step3.5 板块远期收益预计算: {len(sector_fwd_avg)} 个 (日期,板块) 组合"
+          f" ({time.time()-t0:.0f}s)")
+
     # ── Step 4: 构建样本 ──
     gap_calendar = int(pred_horizon * 1.5)
     purge_boundary = (datetime.strptime(train_end, "%Y-%m-%d")
@@ -273,21 +320,26 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
     X_test, y_test, d_test = [], [], []
     purged = 0
 
+    # ── 诊断: 统计各过滤条件丢弃的样本数 ──
+    diag_short = diag_nan = diag_close = diag_mkt = 0
+    diag_all_dates = set()
+
     for s in stock_feat:
         feat = stock_feat[s]
         dates = stock_dates[s]
         si = sym_to_idx[s]
         n = len(dates)
-        if n < lookback + pred_horizon: continue
+        if n < lookback + pred_horizon: diag_short += 1; continue
 
         for i in range(lookback, n - pred_horizon):
             anchor = dates[i]
+            diag_all_dates.add(anchor[:7])  # YYYY-MM
             window_raw = feat[i - lookback:i]
-            if np.any(np.isnan(window_raw)): continue
+            if np.any(np.isnan(window_raw)): diag_nan += 1; continue
 
             now_c = feat[i, ci]
             fut_c = feat[i + pred_horizon, ci]
-            if now_c <= 0 or fut_c <= 0: continue
+            if now_c <= 0 or fut_c <= 0: diag_close += 1; continue
 
             # 市场特征: 窗口内每一天的截面统计
             window_market = np.zeros((lookback, n_market), dtype=np.float32)
@@ -299,9 +351,17 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
                     window_market[w, 1] = market_breadth[di]
                     window_market[w, 2] = market_vol[di]
                     window_market[w, 3] = industry_rel[di].get(si, 0.0)
+                else:
+                    # 日期不在 date_to_idx 中 → 市场特征全 0（降级）
+                    diag_mkt += 1
 
             window = np.concatenate([window_raw, window_market], axis=1)
-            y_val_i = fut_c / now_c - 1.0
+
+            # 板块相对 Alpha 标签: 个股远期收益 - 板块平均远期收益
+            stock_ret = fut_c / now_c - 1.0
+            ind_code = int(feat[i, ii]) if np.isfinite(feat[i, ii]) else 0
+            sector_ret = sector_fwd_avg.get((anchor, ind_code), 0.0)
+            y_val_i = stock_ret - sector_ret
 
             if anchor <= train_end:
                 X_train.append(window); y_train.append(y_val_i); d_train.append(anchor)
@@ -313,7 +373,11 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
             elif anchor <= test_end:
                 X_test.append(window); y_test.append(y_val_i); d_test.append(anchor)
 
-    print(f"[data] Step4 样本: train={len(X_train)} val={len(X_val)} test={len(X_test)} purged={purged}")
+    print(f"[data] Step4 样本(板块相对Alpha标签): train={len(X_train)} val={len(X_val)} test={len(X_test)} purged={purged}")
+    print(f"[data] 过滤统计: 序列过短({diag_short}) NaN窗口({diag_nan}) 价格异常({diag_close}) 缺日期({diag_mkt})")
+    if diag_all_dates:
+        dmin, dmax = min(diag_all_dates), max(diag_all_dates)
+        print(f"[data] 有效anchor月份范围: {dmin} ~ {dmax} ({len(diag_all_dates)} 个月)")
     print(f"[data] 总耗时: {time.time()-t0:.0f}s")
 
     if not X_train: raise RuntimeError("无训练样本")
@@ -508,22 +572,46 @@ def main():
     parser.add_argument("--fields", nargs="*", default=FEATURE_FIELDS, help="原始特征字段")
     parser.add_argument("--lookback", type=int, default=LOOKBACK)
     parser.add_argument("--horizon", type=int, default=PRED_HORIZON)
-    parser.add_argument("--hidden-layers", type=int, default=2)
-    parser.add_argument("--hidden-units", type=int, default=128)
-    parser.add_argument("--dropout", type=float, default=0.35)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--hidden-layers", type=int, default=1)
+    parser.add_argument("--hidden-units", type=int, default=64)
+    parser.add_argument("--dropout", type=float, default=0.5)
+    parser.add_argument("--lr", type=float, default=0.0005)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=1024)
     parser.add_argument("--no-amp", action="store_true", help="禁用混合精度训练")
+    parser.add_argument("--max-train-samples", type=int, default=0,
+                        help="训练集最大样本数 (0=不限制, 用于显存不足时降采样)")
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
 
     # 过滤有效字段
     valid_raw = [f for f in args.fields if f in FEATURE_FIELDS]
+
+    # 自动检测板块字段可用性（Phase 1 产出，需重建 Arrow 缓存）
+    available_sector = []
+    try:
+        f = pa.memory_map(str(args.data), "rb")
+        reader = ipc.open_file(f)
+        schema = reader.schema
+        arrow_cols = {schema.field(i).name for i in range(len(schema))}
+        for sf in SECTOR_FIELDS:
+            if sf in arrow_cols:
+                available_sector.append(sf)
+        if available_sector:
+            valid_raw = valid_raw + available_sector
+            print(f"[train] 板块字段已检测: {available_sector} ({len(available_sector)} 个)")
+        else:
+            print(f"[train] 板块字段未检测到，跳过（需重建 Arrow 缓存以启用板块共振特征）")
+    except Exception as e:
+        print(f"[train] 板块字段探测失败: {e}，跳过")
+
+    # 动态构建导出字段列表（用于 feature_config.json）
+    export_fields = valid_raw + MARKET_FEATURES
+
     print(f"[train] 原始字段: {valid_raw} ({len(valid_raw)} 个)")
     print(f"[train] 市场字段: {MARKET_FEATURES} ({len(MARKET_FEATURES)} 个)")
-    print(f"[train] 标签: 截面排序 (Spearman Rank IC 对齐)")
+    print(f"[train] 标签: 板块相对 Alpha (截面排序)")
     print(f"[train] 切分: 训练 ~{TRAIN_END} / 验证 ~{VAL_END}")
     print(f"[train] 加速: amp={not args.no_amp}")
 
@@ -531,10 +619,18 @@ def main():
         (d_train, d_val, d_test) = load_data(
         args.data, args.symbols, valid_raw, args.lookback, args.horizon)
 
+    # 显存不足时降采样训练集
+    if args.max_train_samples > 0 and len(X_train) > args.max_train_samples:
+        rng = np.random.RandomState(42)
+        idx = rng.choice(len(X_train), args.max_train_samples, replace=False)
+        X_train = X_train[idx]; y_train = y_train[idx]
+        d_train = [d_train[i] for i in idx]
+        print(f"[train] 训练集降采样: {len(idx)} (was {len(idx) + len(set(range(len(X_train))) - set(idx))})")
+
     model, scaler, nf, p1, p99 = train(
         args, X_train, y_train, X_val, y_val, X_test, y_test, d_train, d_val, d_test)
 
-    export_onnx(model, scaler, nf, args.lookback, args.output, ALL_FIELDS, args.horizon, p1, p99)
+    export_onnx(model, scaler, nf, args.lookback, args.output, export_fields, args.horizon, p1, p99)
     print(f"\n[完成] {args.output}/")
     print(f"  model.onnx  scaler.json  feature_config.json")
 
