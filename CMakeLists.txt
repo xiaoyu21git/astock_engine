@@ -91,19 +91,21 @@ target_include_directories(eventbus_native PRIVATE
 )
 
 # ==================== Debug: Python缺少debug库, 强制用release ====================
-if(WIN32 AND CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
-    set(Python_LIBRARIES "${Python_LIBRARY_RELEASE}")
-endif()
+# 注意: 此前用 CMAKE_BUILD_TYPE 判断在 VS 多配置生成器下永不生效 (该变量恒为空),
+# Debug 实际链接 python312_d.lib, 而编译无 _DEBUG 时 pyconfig.h 的 pragma 嵌入
+# 裸名 python312.lib (不在库搜索路径) → LNK1104。
+# 修复: 全配置统一链接 Python_LIBRARY_RELEASE (全路径 python312.lib),
+# 与 pragma 抛出的裸名同名, 可被链接器消解; Release 等配置行为不变。
 
 # ==================== 链接库 ====================
 target_link_libraries(astock_engine_native PRIVATE
     astock_core
-    ${Python_LIBRARIES}
+    ${Python_LIBRARY_RELEASE}
 )
 
 target_link_libraries(eventbus_native PRIVATE
     astock_core
-    ${Python_LIBRARIES}
+    ${Python_LIBRARY_RELEASE}
 )
 
 # database_native target removed — see above

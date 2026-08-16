@@ -38,11 +38,11 @@ if sys.platform == "win32":
 # DataSourceRegistry.h: sector_daily_columns::names() + DLFactor.cpp: getDataRequirements()
 # train.py: SECTOR_FIELDS
 # validate_sector_data.py: SECTOR_FIELDS
+# 2026-08-13: sector_vwap_change 更名 sector_return；concentration/turnover_ratio 已从训练剔除
 EXPECTED_SECTOR_ORDER = [
-    "sector_vwap_change", "sector_breadth", "sector_is_reliable",
+    "sector_return", "sector_breadth", "sector_is_reliable",
     "sector_money_flow_net", "sector_money_flow_ratio",
     "sector_amplitude", "sector_relative_strength",
-    "sector_concentration", "sector_turnover_ratio",
 ]
 
 # train.py: FEATURE_FIELDS (12)
@@ -65,11 +65,11 @@ EXPECTED_MARKET_ORDER = [
 
 # 预期维度链
 N_FEATURE = len(EXPECTED_FEATURE_FIELDS)      # 12
-N_SECTOR = len(EXPECTED_SECTOR_ORDER)          # 9
-N_RAW = N_FEATURE + N_SECTOR                   # 21
+N_SECTOR = len(EXPECTED_SECTOR_ORDER)          # 7
+N_RAW = N_FEATURE + N_SECTOR                   # 19
 N_DERIVED = len(EXPECTED_DERIVED_ORDER)        # 6
 N_MARKET = len(EXPECTED_MARKET_ORDER)          # 4
-N_TOTAL = N_RAW + N_DERIVED + N_MARKET         # 31
+N_TOTAL = N_RAW + N_DERIVED + N_MARKET         # 29
 
 # ═══════════════════════════════════════════════════════════════
 
@@ -342,11 +342,10 @@ def verify_arrow(arrow_path, sample_rows=10):
                     else:
                         svals[sf] = "N/A"
                 print(f"  {s:>12} {d} ind={str(ic):>6} | "
-                      f"vwap_chg={svals['sector_vwap_change']:>8} "
+                      f"ret={svals['sector_return']:>8} "
                       f"breadth={svals['sector_breadth']:>6} "
                       f"rel={svals['sector_is_reliable']:>2} "
-                      f"rel_str={svals['sector_relative_strength']:>8} "
-                      f"conc={svals['sector_concentration']:>6}")
+                      f"rel_str={svals['sector_relative_strength']:>8}")
                 printed += 1
 
     return r.summary()

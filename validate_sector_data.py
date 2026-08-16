@@ -12,23 +12,24 @@ import argparse, sys
 import numpy as np
 import pyarrow as pa, pyarrow.ipc as ipc
 
+# 2026-08-13: sector_vwap_change 更名 sector_return（板块聚合改 daily_bar 等权涨跌幅口径）
 SECTOR_FIELDS = [
-    "sector_vwap_change", "sector_breadth", "sector_is_reliable",
+    "sector_return", "sector_breadth", "sector_is_reliable",
     "sector_money_flow_net", "sector_money_flow_ratio",
     "sector_amplitude", "sector_relative_strength",
     "sector_concentration", "sector_turnover_ratio",
 ]
 
 VALIDATION_CHECKS = {
-    "sector_vwap_change":      {"range": (-0.15, 0.15),   "desc": "板块VWAP涨跌幅"},
-    "sector_breadth":          {"range": (0.0, 1.0),      "desc": "板块上涨家数占比"},
-    "sector_is_reliable":      {"range": (0.0, 1.0),      "desc": "板块统计可靠性(0/1)"},
-    "sector_money_flow_net":   {"range": (-1e12, 1e12),   "desc": "板块资金净流入(元)"},
-    "sector_money_flow_ratio": {"range": (-0.5, 0.5),     "desc": "板块资金净流入/成交额"},
-    "sector_amplitude":        {"range": (0.0, 0.2),      "desc": "板块VWAP日内振幅"},
-    "sector_relative_strength":{"range": (-0.1, 0.1),     "desc": "板块相对大盘涨跌幅差"},
-    "sector_concentration":    {"range": (0.0, 1.0),      "desc": "板块Top3成交额占比"},
-    "sector_turnover_ratio":   {"range": (0.0, 5.0),      "desc": "板块成交额/20日均值"},
+    "sector_return":           {"range": (-25.0, 25.0),    "desc": "板块等权涨跌幅(%)"},
+    "sector_breadth":          {"range": (0.0, 1.0),       "desc": "板块上涨家数占比"},
+    "sector_is_reliable":      {"range": (0.0, 1.0),       "desc": "板块统计可靠性(0/1)"},
+    "sector_money_flow_net":   {"range": (-1e12, 1e12),    "desc": "板块资金净流入(元)"},
+    "sector_money_flow_ratio": {"range": (-0.5, 0.5),      "desc": "板块资金净流入/成交额"},
+    "sector_amplitude":        {"range": (0.0, 25.0),      "desc": "板块成分股振幅均值(%)"},
+    "sector_relative_strength":{"range": (-50.0, 50.0),    "desc": "板块相对大盘涨跌幅差(%)"},
+    "sector_concentration":    {"range": (0.0, 1.0),       "desc": "板块Top3成交额占比"},
+    "sector_turnover_ratio":   {"range": (0.0, 10.0),      "desc": "板块成交额/20日均值"},
 }
 
 
@@ -170,7 +171,7 @@ def main():
                 date = str(date_col[ri])[:10] if ri < len(date_col) and date_col[ri] else "?"
                 ic = ic_col[ri] if ri < len(ic_col) else "?"
                 sv = {sf: sector_cols[sf][ri] for sf in sector_cols if ri < len(sector_cols[sf])}
-                print(f"  [{sym}] {date} ind={ic} | vwap_chg={sv.get('sector_vwap_change','?'):.4f} "
+                print(f"  [{sym}] {date} ind={ic} | ret={sv.get('sector_return','?'):.4f} "
                       f"breadth={sv.get('sector_breadth','?'):.3f} reliable={sv.get('sector_is_reliable','?')} "
                       f"rel_str={sv.get('sector_relative_strength','?'):.4f}")
                 printed += 1

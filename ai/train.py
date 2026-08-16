@@ -31,11 +31,14 @@ FEATURE_FIELDS = [
 ]
 
 # 板块日频聚合列（Phase 1 产出，需重建 Arrow 缓存后可用）
+# 2026-08-13 移除 sector_concentration/sector_turnover_ratio：
+# 两者依赖 minute_bar.amount，而历史补录源（AmiBroker CSV）无成交额 → 2015-2025 全 NULL。
+# 训练侧会填 0 学成噪声，推理侧 allFinite 拒样本 → 双重有害，直接剔除（共 23 特征）。
+# 2026-08-13: sector_vwap_change 更名 sector_return（板块聚合改 daily_bar 等权涨跌幅口径）
 SECTOR_FIELDS = [
-    "sector_vwap_change", "sector_breadth", "sector_is_reliable",
+    "sector_return", "sector_breadth", "sector_is_reliable",
     "sector_money_flow_net", "sector_money_flow_ratio",
     "sector_amplitude", "sector_relative_strength",
-    "sector_concentration", "sector_turnover_ratio",
 ]
 
 # 市场环境特征 (截面统计量, 同一天所有股票共享)
@@ -53,10 +56,12 @@ LOOKBACK = 20
 PRED_HORIZON = 20       # 需与回测 forwardDays 一致
 MIN_LISTED_DAYS = 60
 
-# 时序切分 (包含 9.24 政策转向)
-TRAIN_END = "2025-12-31"
-VAL_END   = "2026-03-31"
-TEST_END  = "2026-07-27"
+# 时序切分 (2026-08-13 重切: 回测窗口 2026-01-01 起必须纯样本外)
+# 训练 ≤ 2024-06-30 (4.5 年), 验证 2024 下半年 (9.24 政策转向落在验证段),
+# 测试 2025 全年; 策略回测只看 2026-01-01 起, 与三段零重叠
+TRAIN_END = "2024-06-30"
+VAL_END   = "2024-12-31"
+TEST_END  = "2025-12-31"
 
 
 # ══════════════════════════════════════════════════════
@@ -157,9 +162,12 @@ def load_data(arrow_path, symbols, raw_fields, lookback, pred_horizon,
         symbols = sorted(symbols)
         print(f"[data] 自动发现 {len(symbols)} 只标的")
 
+    # 排除: 沪指数 000xxx.SH / 深 B 股 200xxx / 沪 B 股 900xxx / 深指数 399xxx
+    # (B 股港币/美元计价且行情常断档, 2026-08 回测证实会污染选股与净值)
     sym_set = {s for s in set(symbols)
                if not (s.startswith("000") and s.endswith(".SH"))
-               and not s.startswith("200") and not s.startswith("399")}
+               and not s.startswith("200") and not s.startswith("900")
+               and not s.startswith("399")}
     symbols = [s for s in symbols if s in sym_set]
     sym_to_idx = {s: i for i, s in enumerate(symbols)}
 
@@ -451,11 +459,13 @@ def train(args, X_train, y_train, X_val, y_val, X_test=None, y_test=None,
     yv = torch.FloatTensor(y_val).to(device) if len(y_val) > 0 else yt[:0]
 
     criterion = nn.MSELoss()
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=2e-3)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     scaler_amp = torch.cuda.amp.GradScaler() if device.type == "cuda" else None
 
-    best_val_loss = float("inf")
+    # 最优模型与早停均按验证 rank_ic 判 (因子用途是排序, MSE loss 会选到输出近零的模型)
+    best_val_ic = -1.0
+    patience_left = args.early_stop_patience
     bs = args.batch_size
 
     for epoch in range(args.epochs):
@@ -498,14 +508,22 @@ def train(args, X_train, y_train, X_val, y_val, X_test=None, y_test=None,
                 val_loss = total_loss / max(n_batches, 1)
                 m = {"rank_ic": 0, "spread": 0, "half_life": 0}
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        if m["rank_ic"] > best_val_ic:
+            best_val_ic = m["rank_ic"]
             torch.save(model.state_dict(), os.path.join(args.output, "best_model.pt"))
+            patience_left = args.early_stop_patience
+        else:
+            patience_left -= 1
 
-        if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
+        if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1 or patience_left <= 0:
             print(f"  epoch {epoch:3d}: loss={total_loss/n_batches:.6f} "
                   f"val={val_loss:.6f} IC={m['rank_ic']:.4f} "
                   f"spread={m['spread']:.6f} hl={m['half_life']}")
+
+        # 早停: 验证 rank_ic 连续 patience 轮未改善即停 (最终仍加载 IC 最优的 best_model.pt)
+        if patience_left <= 0:
+            print(f"  [early-stop] epoch {epoch}: 验证 IC 连续 {args.early_stop_patience} 轮未改善 (best={best_val_ic:.4f}), 停止训练")
+            break
 
     model.load_state_dict(torch.load(os.path.join(args.output, "best_model.pt"), weights_only=True))
 
@@ -574,9 +592,11 @@ def main():
     parser.add_argument("--horizon", type=int, default=PRED_HORIZON)
     parser.add_argument("--hidden-layers", type=int, default=1)
     parser.add_argument("--hidden-units", type=int, default=64)
-    parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--lr", type=float, default=0.0005)
+    parser.add_argument("--dropout", type=float, default=0.65)
+    parser.add_argument("--lr", type=float, default=0.0003)
     parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--early-stop-patience", type=int, default=15,
+                        help="验证 rank_ic 连续 N 轮未改善即早停 (最终仍加载 IC 最优的 best_model.pt)")
     parser.add_argument("--batch-size", type=int, default=1024)
     parser.add_argument("--no-amp", action="store_true", help="禁用混合精度训练")
     parser.add_argument("--max-train-samples", type=int, default=0,
