@@ -1042,7 +1042,7 @@ templates:
     display_name: 熊市冻结新开仓模板
     file_name: risk_market_bear_freeze_entry.yaml
     phase: market
-    summary: "三级熊市冻结: 熊市体制→准熊市退潮→恐慌波动, 独立OR触发冻结。不再要求四条件同时满足。"
+    summary: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位。
     actions:
       - freeze
     tags:
