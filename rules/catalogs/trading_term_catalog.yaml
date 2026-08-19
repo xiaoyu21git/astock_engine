@@ -43,7 +43,7 @@ templates:
     display_name: 分批止盈模板
     file_name: exit_scale_out_take_profit.yaml
     phase: rebalance
-    summary: "四级止盈(压力+超涨+支撑+回吐): 前高压力92%减30→超涨MA20/110%减30→支撑破位<0.98清仓→回吐≥5%清仓"
+    summary: "结构止盈: 前高85%减30->超涨MA110%减30->回撤6%清仓->动能<50减30->支撑破位清仓"
     actions:
       - reduce
       - exit
@@ -1042,7 +1042,7 @@ templates:
     display_name: 熊市冻结新开仓模板
     file_name: risk_market_bear_freeze_entry.yaml
     phase: market
-    summary: 市场进入熊市或系统性退潮阶段时，优先冻结新增仓位。
+    summary: "熊市体制冻结: regime==bear冻结新开仓"
     actions:
       - freeze
     tags:
